@@ -70,7 +70,7 @@ public class SystemFileWriter
      * @param paths the moves constituting the drone's flight path for each order.
      * @throws IOException if the moves cannot be written to file.
      */
-    public void writeFlightPaths(Map<String, DronePathFinder.Move[]> paths) throws IOException
+    public void writeFlightPaths(Map<String, PathFinder.Move[]> paths) throws IOException
     {
         if (paths == null || paths.isEmpty())
             throw new IllegalArgumentException("nothing to write; paths is null or empty");
@@ -134,14 +134,14 @@ public class SystemFileWriter
     }
 
     /**
-     * Represents a JSON-serialisable {@link DronePathFinder.Move}.
+     * Represents a JSON-serialisable {@link PathFinder.Move}.
      */
-    private static class SerialisableMove extends DronePathFinder.Move
+    private static class SerialisableMove extends PathFinder.Move
     {
         @JsonProperty()
         private String orderNo;
 
-        public SerialisableMove(String orderNo, DronePathFinder.Move move)
+        public SerialisableMove(String orderNo, PathFinder.Move move)
         {
             super(move);
             this.orderNo = orderNo;

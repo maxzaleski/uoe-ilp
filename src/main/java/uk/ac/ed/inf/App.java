@@ -102,8 +102,8 @@ public class App
             final NamedRegion campus = apiClient.getCentralAreaCoordinates();
             final NamedRegion[] noFlyZones = apiClient.getNoFlyZones();
 
-            final DronePathFinder pathFinder = new DronePathFinder(campus, noFlyZones);
-            final Map<String, DronePathFinder.Move[]> flightPathMap = new HashMap<>();
+            final PathFinder pathFinder = new PathFinder(campus, noFlyZones);
+            final Map<String, PathFinder.Move[]> flightPathMap = new HashMap<>();
 
             // [5] Calculate the flight path for each order.
             Arrays.stream(orders).forEach(order ->

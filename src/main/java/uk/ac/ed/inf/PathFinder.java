@@ -7,12 +7,12 @@ import uk.ac.ed.inf.ilp.data.NamedRegion;
 /**
  * Encapsulates the logic for finding the shortest path between Appleton Tower and a given restaurant.
  */
-public class DronePathFinder
+public class PathFinder
 {
     final private NamedRegion centralArea;
     final private NamedRegion[] noFlyZones;
 
-    public DronePathFinder(NamedRegion centralArea, NamedRegion[] noFlyZones)
+    public PathFinder(NamedRegion centralArea, NamedRegion[] noFlyZones)
     {
         this.centralArea = centralArea;
         this.noFlyZones = noFlyZones;
