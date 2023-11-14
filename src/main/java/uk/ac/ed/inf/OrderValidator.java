@@ -173,7 +173,7 @@ public class OrderValidator implements OrderValidation
      * {@link OrderValidationCode#PIZZA_NOT_DEFINED} if the order contains less than one pizza or a pizza that is not
      * defined on any menu.
      * <p>
-     * {@link OrderValidationCode#MAX_PIZZA_COUNT_EXCEEDED} if the order contains more than 4 pizzas.
+     * {@link OrderValidationCode#MAX_PIZZA_COUNT_EXCEEDED} if the order contains more than {@value SystemConstants#MAX_PIZZAS_PER_ORDER} pizzas.
      * <p>
      * {@link OrderValidationCode#RESTAURANT_CLOSED} if the restaurant is closed.
      * <p>
@@ -186,7 +186,7 @@ public class OrderValidator implements OrderValidation
         final int itemCount = items.length;
         if (itemCount < 1)
             return OrderValidationCode.PIZZA_NOT_DEFINED;
-        else if (itemCount > 4)
+        else if (itemCount > SystemConstants.MAX_PIZZAS_PER_ORDER)
             return OrderValidationCode.MAX_PIZZA_COUNT_EXCEEDED;
 
         // [requirement] A restaurant has any of the pizzas on its menu.

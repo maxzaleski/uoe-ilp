@@ -15,7 +15,7 @@ import java.net.URL;
 import java.util.Arrays;
 
 /**
- * Represents the client for the application's REST API.
+ * Represents the client for the application's RESTful API (Application Programming Interface).
  */
 public class APIClient implements IAPIClient
 {
@@ -44,11 +44,16 @@ public class APIClient implements IAPIClient
         return dataObjectsFactory.createNamedRegion(namedRegionDto);
     }
 
-    public Order[] getOrdersByISODate(String date) throws IllegalArgumentException, IOException
+    public NamedRegion[] getNoFlyZones() throws IOException
     {
-        if (!date.matches("\\d{4}-\\d{2}-\\d{2}"))
-            throw new IllegalArgumentException("Date must be of format YYYY-MM-DD");
+        final NamedRegionDto[] namedRegionDto = objectMapper.readValue(new URL(url + "/noFlyZones"), NamedRegionDto[].class);
+        return Arrays.stream(namedRegionDto)
+                .map(dataObjectsFactory::createNamedRegion)
+                .toArray(NamedRegion[]::new);
+    }
 
+    public Order[] getOrdersByISODate(String date) throws IOException
+    {
         final OrderDto[] ordersDto = objectMapper.readValue(new URL(url + "/orders/" + date), OrderDto[].class);
         return Arrays.stream(ordersDto)
                 .map(dataObjectsFactory::createOrder)

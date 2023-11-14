@@ -6,7 +6,7 @@ import uk.ac.ed.inf.ilp.data.*;
 import java.util.Arrays;
 
 /**
- * A factory for creating data objects from received DTOs.
+ * A factory for creating data objects from received API DTOs (Data Transfer Object).
  */
 public class DataObjectsFactory implements IDataObjectsFactory
 {
