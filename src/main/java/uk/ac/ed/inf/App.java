@@ -6,7 +6,9 @@ import uk.ac.ed.inf.ilp.data.LngLat;
 import uk.ac.ed.inf.ilp.data.NamedRegion;
 import uk.ac.ed.inf.ilp.data.Order;
 import uk.ac.ed.inf.ilp.data.Restaurant;
+import uk.ac.ed.inf.pathFinder.PathFinder;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -49,6 +51,7 @@ public class App
     {
         final String dateArg = args[0];
         final String apiURLArg = args[1];
+        final String seed = args[2];
 
         // [setup]
         try
@@ -56,7 +59,8 @@ public class App
             validateArgs(dateArg, apiURLArg);
             logger.info("[system] starting PizzaDronz " + Map.of(
                     "date", dateArg,
-                    "apiURL", apiURLArg
+                    "apiURL", apiURLArg,
+                    "seed", seed
             ));
         } catch (IllegalArgumentException e)
         {
@@ -99,27 +103,46 @@ public class App
             orders = filterInvalidOrders(orders, restaurants);
 
             // [4] Fetch central area and no-fly zones.
-            final NamedRegion campus = apiClient.getCentralAreaCoordinates();
+            final NamedRegion boundary = apiClient.getCentralAreaCoordinates();
             final NamedRegion[] noFlyZones = apiClient.getNoFlyZones();
 
-            final PathFinder pathFinder = new PathFinder(campus, noFlyZones);
-            final Map<String, PathFinder.Move[]> flightPathMap = new HashMap<>();
+            final PathFinder pathFinder = new PathFinder(seed, boundary, noFlyZones);
+//            final Map<String, PathFinder.Move[]> flightPathMap = new HashMap<>();
+
+            final LngLat appletonTower = new LngLat(-3.186874, 55.944494);
+            final LngLat to = new LngLat(-3.179798972064253, 55.939884084483);
+//            final LngLat to = new LngLat(-3.1810810679852035, 55.938910643735845);
+//            final LngLat to = new LngLat(-3.1912869215011597, 55.945535152517735);
+//            final LngLat to = new LngLat(-3.1838572025299072, 55.94449876875712);
+//            final LngLat to = new LngLat(-3.202541470527649, 55.943284737579376);
+
+            var TEST_OUT = new ArrayList<LngLat>();
+            TEST_OUT.add(to);
+            TEST_OUT.addAll(pathFinder.findRoute(appletonTower, to));
+            TEST_OUT.add(appletonTower);
+
+            fileWriter.writeCoordinates(TEST_OUT.toArray(LngLat[]::new));
+
+            // TODO: remove
+//            pathFinder.findShortestPath(restaurantMap
+//                    .get(orders[0].getPizzasInOrder()[0].name())
+//                    .location());
 
             // [5] Calculate the flight path for each order.
-            Arrays.stream(orders).forEach(order ->
-            {
-                // (i) We have validated that each item in the order is from the same restaurant.
-                //     In [2], we have mapped each menu item to its restaurant instance, as to retrieve its coordinates
-                //     in O(1) rather than O(n) time.
-                final LngLat restaurantCoords = restaurantMap
-                        .get(order.getPizzasInOrder()[0].name())
-                        .location();
-                flightPathMap.put(order.getOrderNo(), pathFinder.findShortestPath(restaurantCoords));
-            });
+//            Arrays.stream(orders).forEach(order ->
+//            {
+//                // (i) We have validated that each item in the order is from the same restaurant.
+//                //     In [2], we have mapped each menu item to its restaurant instance, as to retrieve its coordinates
+//                //     in O(1) rather than O(n) time.
+//                final LngLat restaurantCoords = restaurantMap
+//                        .get(order.getPizzasInOrder()[0].name())
+//                        .location();
+//                flightPathMap.put(order.getOrderNo(), pathFinder.findShortestPath(restaurantCoords));
+//            });
 
             // [6] Write items to their respective files.
-            fileWriter.writeOrders(orders);
-            fileWriter.writeFlightPaths(flightPathMap);
+//            fileWriter.writeOrders(orders);
+//            fileWriter.writeFlightPaths(flightPathMap);
             // TODO: geojson
         } catch (Exception e)
         {

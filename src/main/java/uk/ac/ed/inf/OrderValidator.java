@@ -85,10 +85,6 @@ public class OrderValidator implements OrderValidation
         if (order.getOrderNo().isEmpty())
             return false;
 
-        // [requirement] The order was placed today.
-        if (order.getOrderDate().getDayOfYear() != LocalDate.now().getDayOfYear())
-            return false;
-
         // [requirement] The order has yet to be handled by the system.
         return order.getOrderStatus() == OrderStatus.UNDEFINED &&
                 order.getOrderValidationCode() == OrderValidationCode.UNDEFINED;

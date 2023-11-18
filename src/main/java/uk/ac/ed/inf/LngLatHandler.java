@@ -138,13 +138,13 @@ public class LngLatHandler implements LngLatHandling
 
         // Convert degrees into radians.
         final double angleInRadi = Math.toRadians(angle);
-        final double R = Math.toRadians(SystemConstants.DRONE_MOVE_DISTANCE); // (angular distance)
+        final double R = SystemConstants.DRONE_MOVE_DISTANCE; // (angular distance)
 
         // Calculate the next position:
         return new LngLat(
                 // x₂ = x₁ + R * cos(θ)
-                Math.toDegrees(startPosition.lng() + R * Math.cos(angleInRadi)),
+                startPosition.lng() + R * Math.cos(angleInRadi),
                 // y₂ = y₁ + R * sin(θ)
-                Math.toDegrees(startPosition.lat() + R * Math.sin(angleInRadi)));
+                startPosition.lat() + R * Math.sin(angleInRadi));
     }
 }

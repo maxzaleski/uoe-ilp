@@ -5,15 +5,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import uk.ac.ed.inf.ilp.constant.OrderStatus;
 import uk.ac.ed.inf.ilp.constant.OrderValidationCode;
+import uk.ac.ed.inf.ilp.data.LngLat;
 import uk.ac.ed.inf.ilp.data.Order;
 
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.HashMap;
 import java.util.logging.Logger;
+import java.util.stream.IntStream;
 
 /**
  * Represents a writer for the system's output files.
@@ -70,19 +70,54 @@ public class SystemFileWriter
      * @param paths the moves constituting the drone's flight path for each order.
      * @throws IOException if the moves cannot be written to file.
      */
-    public void writeFlightPaths(Map<String, PathFinder.Move[]> paths) throws IOException
+//    public void writeFlightPaths(Map<String, PathFinder.Move[]> paths) throws IOException {
+//        if (paths == null || paths.isEmpty())
+//            throw new IllegalArgumentException("nothing to write; paths is null or empty");
+//
+//        final List<SerialisableMove> writableMoves = new ArrayList<>();
+//        paths.forEach((key, values) ->
+//                Arrays.stream(values)
+//                        .map(move -> new SerialisableMove(key, move))
+//                        .forEach(writableMoves::add));
+//
+//        write(LOCATION + "flightpath-" + date + ".json", writableMoves.toArray());
+//    }
+    public void writeCoordinates(LngLat[] coords) throws IOException
     {
-        if (paths == null || paths.isEmpty())
-            throw new IllegalArgumentException("nothing to write; paths is null or empty");
+        if (coords == null || coords.length == 0)
+            throw new IllegalArgumentException("nothing to write; orders is null or empty");
 
-        final List<SerialisableMove> writableMoves = new ArrayList<>();
-        paths.forEach((key, values) ->
-                Arrays.stream(values)
-                        .map(move -> new SerialisableMove(key, move))
-                        .forEach(writableMoves::add));
+        int index = 0;
+        var features = IntStream.range(0, coords.length).mapToObj(i ->
+                {
+                    var properties = new HashMap<String, Object>();
+                    if (i == coords.length - 1)
+                    {
+                        properties.put("marker-color", "#FF0000");
+                        properties.put("title", "Appleton Tower");
+                        properties.put("marker-symbol", "communications-tower");
+                    } else if (i == 0)
+                    {
+                        properties.put("marker-color", "blue");
+                        properties.put("marker-symbol", "commercial");
+                    }
 
-        write(LOCATION + "flightpath-" + date + ".json", writableMoves.toArray());
+                    return new GeoJSON.Feature(
+                            new GeoJSON.Feature.Geometry(coords[i]), properties);
+                })
+                .toArray(GeoJSON.Feature[]::new);
+
+        try
+        {
+            final FileWriter file = new FileWriter(LOCATION + "foobar-" + date + ".json");
+            file.write(jsonObjectMapper.writeValueAsString(new GeoJSON(features)));
+            file.close();
+        } catch (IOException e)
+        {
+            throw new IOException(String.format("failed to write data %s", e.getMessage()));
+        }
     }
+
 
     /**
      * Writes the given data to the given destination.
@@ -133,18 +168,63 @@ public class SystemFileWriter
         }
     }
 
-    /**
-     * Represents a JSON-serialisable {@link PathFinder.Move}.
-     */
-    private static class SerialisableMove extends PathFinder.Move
-    {
-        @JsonProperty()
-        private String orderNo;
+//    /**
+//     * Represents a JSON-serialisable {@link PathFinder.Move}.
+//     */
+//    private static class SerialisableMove extends PathFinder.Move
+//    {
+//        @JsonProperty()
+//        private String orderNo;
+//
+//        public SerialisableMove(String orderNo, PathFinder.Move move)
+//        {
+//            super(move);
+//            this.orderNo = orderNo;
+//        }
+//    }
 
-        public SerialisableMove(String orderNo, PathFinder.Move move)
+    static class GeoJSON
+    {
+        @JsonProperty("type")
+        final private String type;
+        @JsonProperty("features")
+        final private Feature[] features;
+
+        public GeoJSON(Feature[] features)
         {
-            super(move);
-            this.orderNo = orderNo;
+            this.type = "FeatureCollection";
+            this.features = features;
+        }
+
+        static class Feature
+        {
+            @JsonProperty("type")
+            final private String type;
+            @JsonProperty("geometry")
+            final private Geometry geometry;
+            @JsonProperty("properties")
+            final private HashMap<String, Object> properties;
+
+            public Feature(Geometry geometry, HashMap<String, Object> properties)
+            {
+                this.type = "Feature";
+                this.geometry = geometry;
+                this.properties = properties;
+            }
+
+            static class Geometry
+            {
+                @JsonProperty("type")
+                final private String type;
+                @JsonProperty("coordinates")
+                final private double[] coordinates;
+
+                public Geometry(LngLat coordinates)
+                {
+                    this.type = "Point";
+                    this.coordinates = new double[]{coordinates.lng(), coordinates.lat()};
+                }
+            }
         }
     }
 
