@@ -1,4 +1,4 @@
-package uk.ac.ed.inf.lib.geoJSON;
+package uk.ac.ed.inf.lib.systemFileWriter.geoJSON;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -11,12 +11,12 @@ import java.util.HashMap;
  */
 public class Feature<T extends IFeature.Geometry<?>> implements IFeature
 {
+    @JsonProperty("properties")
+    protected final HashMap<String, Object> properties;
     @JsonProperty("type")
     private final String type = "Feature";
     @JsonProperty("geometry")
     private final T geometry;
-    @JsonProperty("properties")
-    protected final HashMap<String, Object> properties;
 
     /**
      * Constructs a GeoJSON feature.

@@ -3,42 +3,42 @@ package uk.ac.ed.inf.lib.pathFinder;
 import uk.ac.ed.inf.ilp.data.LngLat;
 
 /**
- * Represents a node in the route.
+ * Represents a node in the path.
  */
 public interface INode extends Comparable<INode>
 {
     /**
-     * @return The previous node in the route.
+     * @return The previous node in the path.
      */
     INode getPrevious();
 
     /**
-     * @return The position of the node.
-     */
-    LngLat getPosition();
-
-    /**
-     * @return The score of the route to this node.
-     */
-    double getRouteScore();
-
-    /**
-     * @return The estimated score of the route to the restaurant.
-     */
-    double getEstimatedScore();
-
-    /**
-     * Sets the previous node in the route.
+     * Sets the previous node in the path.
      */
     void setPrevious(INode previous);
 
     /**
-     * Sets the score of the route to this node.
+     * @return The direction of the node.
+     */
+    Direction getDirection();
+
+    /**
+     * @return The score of the path to this node (gScore).
+     */
+    double getRouteScore();
+
+    /**
+     * Sets the score of the path to this node.
      */
     void setRouteScore(double routeScore);
 
     /**
-     * Sets the estimated score of the route to the restaurant.
+     * @return The estimated score of the path to the restaurant.
+     */
+    double getEstimatedScore();
+
+    /**
+     * Sets the estimated score of the node to the destination (fScore).
      */
     void setEstimatedScore(double estimatedScore);
 
@@ -47,4 +47,22 @@ public interface INode extends Comparable<INode>
      */
     @Override
     int compareTo(INode o);
+
+    /**
+     * Represents a {@link INode} direction.
+     * <p>
+     * An angle of 999 is used to indicate that the bearing is not known (the drone is hovering at the position).
+     */
+    record Direction(LngLat position, double angle, long ticksSinceStart)
+    {
+        /**
+         * Constructs a direction with no angle.
+         *
+         * @param position the position of the direction.
+         */
+        Direction(LngLat position, long ticksSinceStart)
+        {
+            this(position, 999, ticksSinceStart);
+        }
+    }
 }

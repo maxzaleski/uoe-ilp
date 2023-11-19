@@ -1,92 +1,129 @@
 package uk.ac.ed.inf.lib.pathFinder;
 
-import uk.ac.ed.inf.LngLatHandler;
 import uk.ac.ed.inf.ilp.data.LngLat;
 import uk.ac.ed.inf.ilp.data.NamedRegion;
-import uk.ac.ed.inf.ilp.interfaces.LngLatHandling;
+import uk.ac.ed.inf.lib.LngLatHandler;
 
 import java.util.*;
 
 public class PathFinder implements IPathFinder
 {
-    final private LngLatHandling lngLatHandler;
+    final private long startTime;
+
+    /**
+     * The implementation class is preferred over the interface as it provides additional context; this is due to the
+     * artifact not containing any documentation for the interface.
+     *
+     * @see uk.ac.ed.inf.ilp.interfaces.LngLatHandling
+     */
+    final private LngLatHandler lngLatHandler;
+
     final private NamedRegion boundary;
     final private NamedRegion[] noFlyZones;
-    final private Map<LngLat, Double> anglesMap;
 
     public PathFinder(NamedRegion boundary, NamedRegion[] noFlyZones)
     {
+        this.startTime = System.nanoTime();
         this.lngLatHandler = new LngLatHandler();
+
         this.boundary = boundary;
         this.noFlyZones = noFlyZones;
-
-        this.anglesMap = new HashMap<>();
     }
 
     public Result findRoute(LngLat fromPos, LngLat toPos)
     {
+        // [abstract]
+        // This method finds the shortest path between the two positions using the A* algorithm.
+        //
+        // The following resources were used in the below adaptation:
+        // [1] https://en.wikipedia.org/wiki/A*_search_algorithm
+        //     → provides a high-level overview of the algorithm and its implementation.
+        // [2] https://www.baeldung.com/java-a-star-pathfinding
+        //     → provides a working example of the algorithm in Java using the London Underground network as the
+        //       operating graph.
+        //     → our implementation is simplified, and generates nodes on each iteration (`getNeighbours`) rather than
+        //       using pre-defined ones.
+
+        final IPathFinder.Result result = new Result();
+        result.getRoute().add(new INode.Direction(fromPos, getTicksSinceStart()));
+
+        // A priority queue which sorts nodes by their estimated score (fScore).
         final Queue<INode> openSet = new PriorityQueue<>();
+        // A map of all nodes visited|generated so far.
         final Map<LngLat, INode> allNodes = new HashMap<>();
 
-        INode current = new Node(null, fromPos, 0d, lngLatHandler.distanceTo(fromPos, toPos));
+        // Begin the calculation by adding the starting position to the queue.
+        INode current = new Node(null,
+                new INode.Direction(fromPos, getTicksSinceStart()),
+                0d,
+                lngLatHandler.distanceTo(fromPos, toPos));
         openSet.add(current);
         allNodes.put(fromPos, current);
 
-        while (!openSet.isEmpty())
+        try
         {
-            current = openSet.poll();
-
-            // Check if the current node is close to the destination; if so, we have found a route.
-            if (lngLatHandler.isCloseTo(current.getPosition(), toPos))
+            // While there are nodes to consider:
+            while (!openSet.isEmpty())
             {
-                // TODO: reconstruct path.
-                final IPathFinder.Result result = new Result(new ArrayList<>(), true, 0d);
-                result.route().add(toPos);
-                while (current != null)
-                {
-                    result.route().add(current.getPosition());
-                    current = current.getPrevious();
-                }
-                return result;
-            }
+                current = openSet.poll();
+                final LngLat currentPos = current.getDirection().position();
 
-            // Otherwise, continue searching.
-            for (LngLat nextPos : getNeighbours(current.getPosition()))
-            {
-                final INode next = allNodes.getOrDefault(nextPos, new Node(nextPos));
-                allNodes.put(nextPos, next);
-
-                final double newScore =
-                        current.getRouteScore() + lngLatHandler.distanceTo(current.getPosition(), next.getPosition());
-                if (newScore < next.getRouteScore())
+                // Check if the current node is close to the destination; if so, we have found a path.
+                // Note the use of `isCloseTo` rather than `equals` to account for possible inaccuracies in the position
+                // calculation.
+                if (lngLatHandler.isCloseTo(currentPos, toPos))
                 {
-                    next.setPrevious(current);
-                    next.setRouteScore(newScore);
-                    next.setEstimatedScore(newScore + lngLatHandler.distanceTo(nextPos, toPos));
-                    openSet.add(next);
+                    result.setOK(true);
+                    result.setRoute(new INode.Direction(toPos, getTicksSinceStart()), current);
+                    break;
+                }
+
+                // Otherwise, generate 16 neighbours (one for each of the 16 possible bearings) and keep searching.
+                for (INode.Direction nextDir : getNeighbours(currentPos))
+                {
+                    final LngLat nextPos = nextDir.position();
+                    final INode next = allNodes.getOrDefault(nextPos, new Node(nextDir));
+                    allNodes.put(nextPos, next);
+
+                    final double newScore =
+                            current.getRouteScore() + lngLatHandler.distanceTo(currentPos, next.getDirection().position());
+
+                    // If the newly calculated score is better than the previously known one, the node's properties are
+                    // updated accordingly, and added to the queue as to be considered in a later iteration.
+                    if (newScore < next.getRouteScore())
+                    {
+                        next.setPrevious(current);
+                        next.setRouteScore(newScore); // [gScore]
+                        next.setEstimatedScore(newScore + lngLatHandler.distanceTo(nextPos, toPos)); // [fScore]
+                        openSet.add(next);
+                    }
                 }
             }
+        } catch (Exception e)
+        {
+            final String msg = String.format("unexpected error while calculating the shortest path from %s to %s: %s",
+                    fromPos.toString(),
+                    toPos.toString(),
+                    e.getMessage() == null ? "no message given" : e.getMessage());
+            throw new RuntimeException(msg, e);
         }
 
-        return new Result(allNodes.keySet().stream().toList(), false, 0d);
+        return result;
     }
 
     /**
-     * @param position the position to find the neighbours of.
-     * @return the neighbours of the given position.
+     * @param position the initial position to find the neighbours of.
+     * @return the {@value LngLatHandler#BEARING_COUNT} neighbours of the given position.
      */
-    private List<LngLat> getNeighbours(LngLat position)
+    private List<INode.Direction> getNeighbours(LngLat position)
     {
-        final List<LngLat> neighbours = new ArrayList<>();
-        for (int i = 0; i < 16; i++)
+        final List<INode.Direction> neighbours = new ArrayList<>();
+        for (int i = 0; i < LngLatHandler.BEARING_COUNT; i++)
         {
-            final double angle = i * 22.5;
-            LngLat nextPosition = lngLatHandler.nextPosition(position, angle);
+            final double angle = i * LngLatHandler.ANGLE_MULTIPLE;
+            final LngLat nextPosition = lngLatHandler.nextPosition(position, angle);
             if (!isWithinBoundary(nextPosition))
-            {
-                neighbours.add(nextPosition);
-                anglesMap.put(nextPosition, angle);
-            }
+                neighbours.add(new INode.Direction(nextPosition, angle, getTicksSinceStart()));
         }
         return neighbours;
     }
@@ -107,11 +144,11 @@ public class PathFinder implements IPathFinder
         return false;
     }
 
-    private void reconstructPath(INode current, List<LngLat> path)
+    /**
+     * @return the number of nanoseconds since the start of the program.
+     */
+    private long getTicksSinceStart()
     {
-        if (current == null)
-            return;
-        reconstructPath(current.getPrevious(), path);
-        path.add(current.getPosition());
+        return System.nanoTime() - startTime;
     }
 }

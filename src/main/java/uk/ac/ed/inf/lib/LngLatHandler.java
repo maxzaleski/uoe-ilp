@@ -1,4 +1,4 @@
-package uk.ac.ed.inf;
+package uk.ac.ed.inf.lib;
 
 import uk.ac.ed.inf.ilp.constant.SystemConstants;
 import uk.ac.ed.inf.ilp.data.LngLat;
@@ -10,7 +10,8 @@ import uk.ac.ed.inf.ilp.interfaces.LngLatHandling;
  */
 public class LngLatHandler implements LngLatHandling
 {
-    private static final double ANGLE_MULTIPLE = 360 / 16.0; // ← number of compose rose directions.
+    public static final double BEARING_COUNT = 16.0; // ← number of compose rose directions.
+    public static final double ANGLE_MULTIPLE = 360 / BEARING_COUNT;
 
     /**
      * Calculates the distance between two points within a Euclidean context.
@@ -30,10 +31,7 @@ public class LngLatHandler implements LngLatHandling
         double yDiff = startPosition.lat() - endPosition.lat();
 
         // If the two points are the same, the distance is 0; exit early to avoid unnecessary calculations.
-        if (xDiff == 0 && yDiff == 0)
-        {
-            return 0;
-        }
+        if (xDiff == 0 && yDiff == 0) return 0;
 
         // Calculates the Euclidean distance between the two points:
         // ⇒ √((x₂ - x₁)² + (y₂ - y₁)²)
@@ -117,11 +115,12 @@ public class LngLatHandler implements LngLatHandling
      * Calculates the next position based on the starting position and the angle of movement.
      *
      * @param startPosition The starting position.
-     * @param angle         The angle to be applied (must be one of the
-     *                      <a href="https://commons.wikimedia.org/w/index.php?curid=2249878">16 compass directions
-     *                      </a> 22.5° increments).
+     * @param angle         The angle to be applied (must be one of the {@value BEARING_COUNT}
+     *                      <a href="https://commons.wikimedia.org/w/index.php?curid=2249878">
+     *                      compass directions</a> ({@value ANGLE_MULTIPLE}° increments).
      * @return The new position.
-     * @throws IllegalArgumentException If the starting position is null or the angle is not between [0, 360].
+     * @throws IllegalArgumentException If the starting position is null or the angle is not a multiple of
+     *                                  {@value ANGLE_MULTIPLE}.
      */
     @Override
     public LngLat nextPosition(LngLat startPosition, double angle) throws IllegalArgumentException

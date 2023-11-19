@@ -44,6 +44,7 @@ public class DataObjectsFactory implements IDataObjectsFactory
                         .toArray(Pizza[]::new),
                 createCreditCardInformation(dto.getCreditCardInformation()));
 
+        // (i) Should always be "UNDEFINED" but since the API returns these, we set them anyway.
         order.setOrderValidationCode(dto.getOrderValidationCode());
         order.setOrderStatus(dto.getOrderStatus());
 

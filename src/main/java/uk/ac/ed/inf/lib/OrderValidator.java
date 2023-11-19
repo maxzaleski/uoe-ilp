@@ -1,4 +1,4 @@
-package uk.ac.ed.inf;
+package uk.ac.ed.inf.lib;
 
 import uk.ac.ed.inf.ilp.constant.OrderStatus;
 import uk.ac.ed.inf.ilp.constant.OrderValidationCode;
