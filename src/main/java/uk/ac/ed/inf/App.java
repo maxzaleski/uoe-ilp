@@ -88,12 +88,13 @@ public class App
         final APIClient apiClient = new APIClient(apiBaseArg, new DataObjectsFactory());
         final ISystemFileWriter fileWriter = new SystemFileWriter(dateArg, logger);
 
-        // [2] Data fetching and validation.
         Map<String, Restaurant> restaurantMap = new HashMap<>();
         Order[] orders = new Order[0];
         Order[] ordersToDeliver = orders;
         NamedRegion boundary = null;
         NamedRegion[] noFlyZones = new NamedRegion[0];
+
+        // [2] Data fetching and validation.
         try
         {
             // [2.1] API health check.
@@ -154,9 +155,10 @@ public class App
 
         logger.info("[system] begin processing " + ordersToDeliver.length + " orders...");
 
-        // [3] Calculate the shortest path between Appleton Tower and each restaurant (and back).
         final IPathFinder pathFinder = new PathFinder(boundary, noFlyZones);
-        final List<IPathFinder.Result> calculationResults = new ArrayList<>();
+        final List<IPathFinder.Result> pathResults = new ArrayList<>();
+
+        // [3] Calculate the shortest path between Appleton Tower and each restaurant (and back).
         Arrays.stream(ordersToDeliver).forEach(order ->
         {
             // (i) We have validated that each item in the order is from the same restaurant.
@@ -174,7 +176,7 @@ public class App
                 result.setOrderNo(order.getOrderNo());
 
                 if (result.getOk())
-                    calculationResults.add(result);
+                    pathResults.add(result);
                 else
                     logger.warning(String.format("[order#%s] failed to find path to '%s' (%s)",
                             result.getOrderNo(),
@@ -187,7 +189,7 @@ public class App
                 // [3.2] Calculate the shortest path between the restaurant and Appleton Tower.
                 if (result.getOk())
                 {
-                    calculationResults.add(result);
+                    pathResults.add(result);
                     order.setOrderStatus(OrderStatus.DELIVERED);
                 } else
                     logger.warning(String.format("[order#%s] failed to find return path to '%s' from '%s' (%s)",
@@ -204,17 +206,17 @@ public class App
         // [4] Write items to their respective files.
         try
         {
-            // [4.1] Write the today's orders.
+            // [4.1] Write today's orders.
             fileWriter.writeOrders(orders);
 
-            final IPathFinder.Result[] successfulResults = calculationResults.stream()
+            final IPathFinder.Result[] successfulResults = pathResults.stream()
                     .filter(IPathFinder.Result::getOk) // (only write successful results)
                     .toArray(IPathFinder.Result[]::new);
 
             // [4.2] Write the flight path for each order.
             fileWriter.writeFlightPath(successfulResults);
 
-            final LngLat[] flattenedPositions = calculationResults.stream()
+            final LngLat[] flattenedPositions = pathResults.stream()
                     .flatMap(result -> result.getRoute().stream())
                     .map(INode.Direction::position)
                     .toArray(LngLat[]::new);
@@ -228,8 +230,8 @@ public class App
         }
 
         // [5] Program termination.
-        logger.info(String.format("[system] finished processing %s orders (completed in %.2fs).",
-                ordersToDeliver.length,
+        logger.info(String.format("[system] finished processing all %s orders (completed in %.2fs).",
+                orders.length,
                 (System.nanoTime() - startTime) / 1e9));
     }
 
@@ -282,7 +284,7 @@ public class App
     private static void handleException(Exception e)
     {
         //noinspection CallToPrintStackTrace
-        e.printStackTrace(); // (Already prints to System.err)
+        e.printStackTrace(); // (already prints to System.err)
         System.exit(1);
     }
 }
