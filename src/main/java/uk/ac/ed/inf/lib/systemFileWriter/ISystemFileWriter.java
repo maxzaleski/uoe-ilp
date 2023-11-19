@@ -8,8 +8,6 @@ import uk.ac.ed.inf.ilp.data.Order;
 import uk.ac.ed.inf.lib.pathFinder.INode.Direction;
 import uk.ac.ed.inf.lib.pathFinder.IPathFinder;
 
-import java.io.IOException;
-
 /**
  * Represents a writer for the system's output files.
  */
@@ -18,28 +16,31 @@ public interface ISystemFileWriter
     String LOCATION = "resultfiles/";
 
     /**
-     * Writes the orders to a JSON file (deliveries-YYYY-MM-DD.json).
+     * Writes the orders to <i>{@value LOCATION}deliveries-YYYY-MM-DD.json<i/>.
      *
      * @param orders the orders to write to file.
-     * @throws IOException if the orders cannot be written to file.
+     * @throws IllegalArgumentException if the orders cannot be written to file.
+     * @throws RuntimeException         if an unexpected error occurs during write.
      */
-    void writeOrders(Order[] orders) throws IOException;
+    void writeOrders(Order[] orders) throws RuntimeException;
 
     /**
-     * Writes the drone's flight path to a GeoJSON file (drone-YYYY-MM-DD.geojson).
+     * Writes the drone's flight path as GeoJSON feature to <i>{@value LOCATION}drone-YYYY-MM-DD.geojson</i>.
      *
      * @param path the coordinates constituting the drone's flight path for the day.
-     * @throws IOException if the GeoJSON cannot be written to file.
+     * @throws IllegalArgumentException if the GeoJSON cannot be written to file.
+     * @throws RuntimeException         if an unexpected error occurs during write.
      */
-    void writeGeoJSON(LngLat[] path) throws IOException;
+    void writeGeoJSON(LngLat[] path) throws RuntimeException;
 
     /**
-     * Writes the drone's flight path to a JSON file (flightpath-YYYY-MM-DD.json).
+     * Writes the drone's flight path to <i>{@value LOCATION}flightpath-YYYY-MM-DD.json</>.
      *
      * @param results the results of the path finding operation.
-     * @throws IOException if the JSON cannot be written to file.
+     * @throws IllegalArgumentException if the JSON cannot be written to file.
+     * @throws RuntimeException         if an unexpected error occurs during write.
      */
-    void writeFlightPath(IPathFinder.Result[] results) throws IOException;
+    void writeFlightPath(IPathFinder.Result[] results) throws RuntimeException;
 
     /**
      * Represents a JSON-serialisable {@link Order}.

@@ -73,7 +73,7 @@ public class App
         try
         {
             validateArgs(dateArg, apiBaseArg);
-            logger.info("[system] starting PizzaDronz " + Map.of(
+            logger.info("[system] starting PizzaDronz... " + Map.of(
                     "date", dateArg,
                     "apiBase", apiBaseArg,
                     "seed(ignored)", seed
@@ -116,7 +116,7 @@ public class App
             orders = apiClient.getOrdersByISODate(dateArg);
             if (orders.length == 0)
             {
-                logger.info("[system] no orders to process for " + dateArg + ", exiting...");
+                logger.info("[system] no orders to process for " + dateArg + ", exiting with no errors...");
                 System.exit(0);
             } else
             {
@@ -149,9 +149,11 @@ public class App
             handleException(e);
         }
 
-        logger.info("[system] fetching done, begin processing " + ordersToDeliver.length + " orders...");
+        logger.info("[system] finished data fetching and validation.");
 
-        // [3] Calculate the shortest path between Appleton Tower and each restaurant.
+        logger.info("[system] begin processing " + ordersToDeliver.length + " orders...");
+
+        // [3] Calculate the shortest path between Appleton Tower and each restaurant (and back).
         final IPathFinder pathFinder = new PathFinder(boundary, noFlyZones);
         final List<IPathFinder.Result> calculationResults = new ArrayList<>();
         Arrays.stream(ordersToDeliver).forEach(order ->
@@ -164,32 +166,38 @@ public class App
             final String restName = restaurant.name();
             final LngLat restPos = restaurant.location();
 
-            // [3.1] Calculate the shortest path between Appleton Tower and the restaurant.
-            IPathFinder.Result result = pathFinder.findRoute(AT_POSITION, restPos);
-            result.setOrderNo(order.getOrderNo());
-
-            if (result.getOk())
-                calculationResults.add(result);
-            else
-                logger.warning(String.format("[order#%s] failed to find route to '%s' (%s)",
-                        result.getOrderNo(),
-                        restName,
-                        restPos));
-
-            result = pathFinder.findRoute(restPos, AT_POSITION);
-            result.setOrderNo(order.getOrderNo());
-
-            // [3.2] Calculate the shortest path between the restaurant and Appleton Tower.
-            if (result.getOk())
+            try
             {
-                calculationResults.add(result);
-                order.setOrderStatus(OrderStatus.DELIVERED);
-            } else
-                logger.warning(String.format("[order#%s] failed to find route back to '%s' from '%s' (%s)",
-                        result.getOrderNo(),
-                        "Appleton Tower",
-                        restName,
-                        restPos));
+                // [3.1] Calculate the shortest path between Appleton Tower and the restaurant.
+                IPathFinder.Result result = pathFinder.findRoute(AT_POSITION, restPos);
+                result.setOrderNo(order.getOrderNo());
+
+                if (result.getOk())
+                    calculationResults.add(result);
+                else
+                    logger.warning(String.format("[order#%s] failed to find route to '%s' (%s)",
+                            result.getOrderNo(),
+                            restName,
+                            restPos));
+
+                result = pathFinder.findRoute(restPos, AT_POSITION);
+                result.setOrderNo(order.getOrderNo());
+
+                // [3.2] Calculate the shortest path between the restaurant and Appleton Tower.
+                if (result.getOk())
+                {
+                    calculationResults.add(result);
+                    order.setOrderStatus(OrderStatus.DELIVERED);
+                } else
+                    logger.warning(String.format("[order#%s] failed to find return route to '%s' from '%s' (%s)",
+                            result.getOrderNo(),
+                            "Appleton Tower",
+                            restName,
+                            restPos));
+            } catch (Exception e)
+            {
+                logger.warning(String.format("[order#%s] %s", order.getOrderNo(), e.getMessage()));
+            }
         });
 
         // [4] Write items to their respective files.
@@ -211,7 +219,7 @@ public class App
             handleException(e);
         }
 
-        logger.info(String.format("[system] successfully processed %s orders (completed in %.2fs).",
+        logger.info(String.format("[system] finished processing %s orders (completed in %.2fs).",
                 ordersToDeliver.length,
                 (System.nanoTime() - startTime) / 1e9));
     }

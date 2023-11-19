@@ -60,42 +60,52 @@ public class PathFinder implements IPathFinder
         openSet.add(current);
         allNodes.put(fromPos, current);
 
-        // While there are nodes to consider:
-        while (!openSet.isEmpty())
+        try
         {
-            current = openSet.poll();
-            final LngLat currentPos = current.getDirection().position();
-
-            // Check if the current node is close to the destination; if so, we have found a route.
-            // Note the use of `isCloseTo` rather than `equals` to account for possible inaccuracies in the position
-            // calculation.
-            if (lngLatHandler.isCloseTo(currentPos, toPos))
+            // While there are nodes to consider:
+            while (!openSet.isEmpty())
             {
-                result.setOK(true);
-                result.setRoute(new INode.Direction(toPos, getTicksSinceStart()), current);
-                break;
-            }
+                current = openSet.poll();
+                final LngLat currentPos = current.getDirection().position();
 
-            // Otherwise, generate 16 neighbours (one for each of the 16 possible bearings) and keep searching.
-            for (INode.Direction nextDir : getNeighbours(currentPos))
-            {
-                final LngLat nextPos = nextDir.position();
-                final INode next = allNodes.getOrDefault(nextPos, new Node(nextDir));
-                allNodes.put(nextPos, next);
-
-                final double newScore =
-                        current.getRouteScore() + lngLatHandler.distanceTo(currentPos, next.getDirection().position());
-
-                // If the newly calculated score is better than the previously known one, the node's properties are
-                // updated accordingly, and added to the queue as to be considered in a later iteration.
-                if (newScore < next.getRouteScore())
+                // Check if the current node is close to the destination; if so, we have found a route.
+                // Note the use of `isCloseTo` rather than `equals` to account for possible inaccuracies in the position
+                // calculation.
+                if (lngLatHandler.isCloseTo(currentPos, toPos))
                 {
-                    next.setPrevious(current);
-                    next.setRouteScore(newScore); // [gScore]
-                    next.setEstimatedScore(newScore + lngLatHandler.distanceTo(nextPos, toPos)); // [fScore]
-                    openSet.add(next);
+                    result.setOK(true);
+                    result.setRoute(new INode.Direction(toPos, getTicksSinceStart()), current);
+                    break;
+                }
+
+                // Otherwise, generate 16 neighbours (one for each of the 16 possible bearings) and keep searching.
+                for (INode.Direction nextDir : getNeighbours(currentPos))
+                {
+                    final LngLat nextPos = nextDir.position();
+                    final INode next = allNodes.getOrDefault(nextPos, new Node(nextDir));
+                    allNodes.put(nextPos, next);
+
+                    final double newScore =
+                            current.getRouteScore() + lngLatHandler.distanceTo(currentPos, next.getDirection().position());
+
+                    // If the newly calculated score is better than the previously known one, the node's properties are
+                    // updated accordingly, and added to the queue as to be considered in a later iteration.
+                    if (newScore < next.getRouteScore())
+                    {
+                        next.setPrevious(current);
+                        next.setRouteScore(newScore); // [gScore]
+                        next.setEstimatedScore(newScore + lngLatHandler.distanceTo(nextPos, toPos)); // [fScore]
+                        openSet.add(next);
+                    }
                 }
             }
+        } catch (Exception e)
+        {
+            final String msg = String.format("unexpected error while calculating the shortest path from %s to %s: %s",
+                    fromPos.toString(),
+                    toPos.toString(),
+                    e.getMessage() == null ? "no message given" : e.getMessage());
+            throw new RuntimeException(msg, e);
         }
 
         return result;

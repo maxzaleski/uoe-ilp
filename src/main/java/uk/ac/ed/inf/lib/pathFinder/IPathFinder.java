@@ -17,8 +17,9 @@ public interface IPathFinder
      * @param from the starting position.
      * @param to   the ending position.
      * @return the result of the search.
+     * @throws RuntimeException if an unexpected error occurs during execution.
      */
-    Result findRoute(LngLat from, LngLat to);
+    Result findRoute(LngLat from, LngLat to) throws RuntimeException;
 
     /**
      * Represents the result of a path finding operation.

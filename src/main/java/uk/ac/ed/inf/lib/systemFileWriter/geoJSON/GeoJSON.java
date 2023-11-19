@@ -1,4 +1,4 @@
-package uk.ac.ed.inf.lib.geoJSON;
+package uk.ac.ed.inf.lib.systemFileWriter.geoJSON;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
