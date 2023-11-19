@@ -8,6 +8,7 @@ import uk.ac.ed.inf.ilp.data.NamedRegion;
 import uk.ac.ed.inf.ilp.data.Order;
 import uk.ac.ed.inf.ilp.data.Restaurant;
 import uk.ac.ed.inf.ilp.interfaces.OrderValidation;
+import uk.ac.ed.inf.lib.OrderValidator;
 import uk.ac.ed.inf.lib.api.APIClient;
 import uk.ac.ed.inf.lib.pathFinder.IPathFinder;
 import uk.ac.ed.inf.lib.pathFinder.PathFinder;
@@ -153,9 +154,7 @@ public class App
             //     in O(1) rather than O(n) time.
             final Restaurant restaurant = restaurantMap.get(order.getPizzasInOrder()[0].name());
 
-            final String restName = restaurant.name();
             final LngLat restPos = restaurant.location();
-            final String orderNo = order.getOrderNo();
 
             final IPathFinder.Result result = pathFinder.findRoute(AT_POSITION, restPos);
             if (result.ok())
@@ -163,8 +162,10 @@ public class App
                 paths.addAll(result.route());
                 order.setOrderStatus(OrderStatus.DELIVERED);
             } else
-                logger.warning(
-                        String.format("[order#%s] failed to find route to '%s' (%s)", orderNo, restName, restPos));
+                logger.warning(String.format("[order#%s] failed to find route to '%s' (%s)",
+                        order.getOrderNo(),
+                        restaurant.name(),
+                        restPos));
         });
 
         // [4] Write items to their respective files.
@@ -174,7 +175,7 @@ public class App
             fileWriter.writeGeoJson(paths.toArray(LngLat[]::new));
         } catch (Exception e)
         {
-            logger.severe("[system] failed to save calculations:");
+            logger.severe("[system] failed to create output files: " + e.getMessage());
             handleException(e);
         }
     }

@@ -3,6 +3,7 @@ package uk.ac.ed.inf;
 import junit.framework.TestCase;
 import uk.ac.ed.inf.ilp.data.LngLat;
 import uk.ac.ed.inf.ilp.data.NamedRegion;
+import uk.ac.ed.inf.lib.LngLatHandler;
 
 public class LngLatHandlerTest extends TestCase
 {

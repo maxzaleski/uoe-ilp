@@ -13,9 +13,9 @@ public interface INode extends Comparable<INode>
     INode getPrevious();
 
     /**
-     * @return The position of the node.
+     * @return The direction of the node.
      */
-    LngLat getPosition();
+    Direction getDirection();
 
     /**
      * @return The score of the route to this node.
@@ -47,4 +47,20 @@ public interface INode extends Comparable<INode>
      */
     @Override
     int compareTo(INode o);
+
+    /**
+     * Represents a {@link INode} direction.
+     */
+    record Direction(LngLat position, double angle)
+    {
+        /**
+         * Constructs a direction with no angle.
+         *
+         * @param position the position of the direction.
+         */
+        Direction(LngLat position)
+        {
+            this(position, 999);
+        }
+    }
 }

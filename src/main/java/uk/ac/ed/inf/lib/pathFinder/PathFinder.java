@@ -1,9 +1,9 @@
 package uk.ac.ed.inf.lib.pathFinder;
 
-import uk.ac.ed.inf.LngLatHandler;
 import uk.ac.ed.inf.ilp.data.LngLat;
 import uk.ac.ed.inf.ilp.data.NamedRegion;
 import uk.ac.ed.inf.ilp.interfaces.LngLatHandling;
+import uk.ac.ed.inf.lib.LngLatHandler;
 
 import java.util.*;
 
@@ -12,17 +12,12 @@ public class PathFinder implements IPathFinder
     final private LngLatHandling lngLatHandler;
     final private NamedRegion boundary;
     final private NamedRegion[] noFlyZones;
-    final private Map<LngLat, Node> seenMap;
-    final private Map<LngLat, Double> anglesMap;
 
     public PathFinder(NamedRegion boundary, NamedRegion[] noFlyZones)
     {
         this.lngLatHandler = new LngLatHandler();
         this.boundary = boundary;
         this.noFlyZones = noFlyZones;
-
-        this.seenMap = new HashMap<>();
-        this.anglesMap = new HashMap<>();
     }
 
     public Result findRoute(LngLat fromPos, LngLat toPos)
@@ -30,36 +25,38 @@ public class PathFinder implements IPathFinder
         final Queue<INode> openSet = new PriorityQueue<>();
         final Map<LngLat, INode> allNodes = new HashMap<>();
 
-        INode current = new Node(null, fromPos, 0d, lngLatHandler.distanceTo(fromPos, toPos));
+        INode current = new Node(null, new INode.Direction(fromPos), 0d, lngLatHandler.distanceTo(fromPos, toPos));
         openSet.add(current);
         allNodes.put(fromPos, current);
 
         while (!openSet.isEmpty())
         {
             current = openSet.poll();
+            final LngLat currentPos = current.getDirection().position();
 
             // Check if the current node is close to the destination; if so, we have found a route.
-            if (lngLatHandler.isCloseTo(current.getPosition(), toPos))
+            if (lngLatHandler.isCloseTo(currentPos, toPos))
             {
                 // TODO: reconstruct path.
                 final IPathFinder.Result result = new Result(new ArrayList<>(), true, 0d);
                 result.route().add(toPos);
                 while (current != null)
                 {
-                    result.route().add(current.getPosition());
+                    result.route().add(currentPos);
                     current = current.getPrevious();
                 }
                 return result;
             }
 
             // Otherwise, continue searching.
-            for (LngLat nextPos : getNeighbours(current.getPosition()))
+            for (INode.Direction nextDir : getNeighbours(currentPos))
             {
-                final INode next = allNodes.getOrDefault(nextPos, new Node(nextPos));
+                final LngLat nextPos = nextDir.position();
+                final INode next = allNodes.getOrDefault(nextPos, new Node(nextDir));
                 allNodes.put(nextPos, next);
 
                 final double newScore =
-                        current.getRouteScore() + lngLatHandler.distanceTo(current.getPosition(), next.getPosition());
+                        current.getRouteScore() + lngLatHandler.distanceTo(currentPos, next.getDirection().position());
                 if (newScore < next.getRouteScore())
                 {
                     next.setPrevious(current);
@@ -77,20 +74,15 @@ public class PathFinder implements IPathFinder
      * @param position the position to find the neighbours of.
      * @return the neighbours of the given position.
      */
-    private List<LngLat> getNeighbours(LngLat position)
+    private List<INode.Direction> getNeighbours(LngLat position)
     {
-        final List<LngLat> neighbours = new ArrayList<>();
+        final List<INode.Direction> neighbours = new ArrayList<>();
         for (int i = 0; i < 16; i++)
         {
             final double angle = i * 22.5;
-            LngLat nextPosition = lngLatHandler.nextPosition(position, angle);
-            if (!seenMap.containsKey(nextPosition) && !isWithinBoundary(nextPosition))
-            {
-                neighbours.add(nextPosition);
-
-                seenMap.put(nextPosition, new Node(nextPosition));
-                anglesMap.put(nextPosition, angle);
-            }
+            final LngLat nextPosition = lngLatHandler.nextPosition(position, angle);
+            if (!isWithinBoundary(nextPosition))
+                neighbours.add(new INode.Direction(nextPosition, angle));
         }
         return neighbours;
     }
@@ -116,6 +108,6 @@ public class PathFinder implements IPathFinder
         if (current == null)
             return;
         reconstructPath(current.getPrevious(), path);
-        path.add(current.getPosition());
+        path.add(current.getDirection().position());
     }
 }
