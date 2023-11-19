@@ -10,6 +10,7 @@ import uk.ac.ed.inf.ilp.data.Restaurant;
 import uk.ac.ed.inf.ilp.interfaces.OrderValidation;
 import uk.ac.ed.inf.lib.OrderValidator;
 import uk.ac.ed.inf.lib.api.APIClient;
+import uk.ac.ed.inf.lib.pathFinder.INode;
 import uk.ac.ed.inf.lib.pathFinder.IPathFinder;
 import uk.ac.ed.inf.lib.pathFinder.PathFinder;
 import uk.ac.ed.inf.lib.systemFileWriter.ISystemFileWriter;
@@ -146,7 +147,7 @@ public class App
 
         // [3] Calculate the shortest path between Appleton Tower and each restaurant.
         final IPathFinder pathFinder = new PathFinder(boundary, noFlyZones);
-        final List<LngLat> paths = new ArrayList<>();
+        final List<INode.Direction> directions = new ArrayList<>();
         Arrays.stream(ordersToDeliver).forEach(order ->
         {
             // (i) We have validated that each item in the order is from the same restaurant.
@@ -157,9 +158,9 @@ public class App
             final LngLat restPos = restaurant.location();
 
             final IPathFinder.Result result = pathFinder.findRoute(AT_POSITION, restPos);
-            if (result.ok())
+            if (result.getOk())
             {
-                paths.addAll(result.route());
+                directions.addAll(result.getRoute());
                 order.setOrderStatus(OrderStatus.DELIVERED);
             } else
                 logger.warning(String.format("[order#%s] failed to find route to '%s' (%s)",
@@ -172,7 +173,7 @@ public class App
         try
         {
             fileWriter.writeOrders(orders);
-            fileWriter.writeGeoJson(paths.toArray(LngLat[]::new));
+            fileWriter.writeGeoJson(directions.stream().map(INode.Direction::position).toArray(LngLat[]::new));
         } catch (Exception e)
         {
             logger.severe("[system] failed to create output files: " + e.getMessage());

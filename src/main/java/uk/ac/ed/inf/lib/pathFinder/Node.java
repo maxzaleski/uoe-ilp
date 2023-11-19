@@ -44,6 +44,11 @@ public class Node implements INode
         return previous;
     }
 
+    public void setPrevious(INode previous)
+    {
+        this.previous = previous;
+    }
+
     public Direction getDirection()
     {
         return direction;
@@ -54,19 +59,14 @@ public class Node implements INode
         return routeScore;
     }
 
-    public double getEstimatedScore()
-    {
-        return estimatedScore;
-    }
-
-    public void setPrevious(INode previous)
-    {
-        this.previous = previous;
-    }
-
     public void setRouteScore(double routeScore)
     {
         this.routeScore = routeScore;
+    }
+
+    public double getEstimatedScore()
+    {
+        return estimatedScore;
     }
 
     public void setEstimatedScore(double estimatedScore)

@@ -2,6 +2,7 @@ package uk.ac.ed.inf.lib.pathFinder;
 
 import uk.ac.ed.inf.ilp.data.LngLat;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -20,38 +21,53 @@ public interface IPathFinder
 
     /**
      * Represents the result of a path finding operation.
-     *
-     * @param route the route or visited nodes if no route was found.
-     * @param ok    true if a route was found, false otherwise.
-     * @param time  the time taken to find the route.
      */
-    record Result(List<LngLat> route, boolean ok, double time)
+    class Result
     {
+        private final List<INode.Direction> route;
+        private boolean ok;
+
+        public Result()
+        {
+            this.route = new ArrayList<>();
+            this.ok = false;
+        }
+
         /**
          * @return true if a route was found, false otherwise.
          */
-        @Override
-        public boolean ok()
+        public boolean getOk()
         {
             return ok;
         }
 
         /**
-         * @return the time taken to find the route.
+         * @return the directions constituting the route; empty if no route was found.
          */
-        @Override
-        public double time()
+        public List<INode.Direction> getRoute()
         {
-            return time;
+            return route;
         }
 
         /**
-         * @return the route or visited nodes if no route was found.
+         * Sets the outcome of the search.
          */
-        @Override
-        public List<LngLat> route()
+        public void setOK(boolean ok)
         {
-            return route;
+            this.ok = ok;
+        }
+
+        /**
+         * Reconstructs the path from the given node to the starting node.
+         */
+        public void setRoute(INode.Direction from, INode current)
+        {
+            route.add(from);
+            while (current != null)
+            {
+                route.add(current.getDirection());
+                current = current.getPrevious();
+            }
         }
     }
 }

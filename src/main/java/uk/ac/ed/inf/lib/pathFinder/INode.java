@@ -13,24 +13,19 @@ public interface INode extends Comparable<INode>
     INode getPrevious();
 
     /**
+     * Sets the previous node in the route.
+     */
+    void setPrevious(INode previous);
+
+    /**
      * @return The direction of the node.
      */
     Direction getDirection();
 
     /**
-     * @return The score of the route to this node.
+     * @return The score of the route to this node (gScore).
      */
     double getRouteScore();
-
-    /**
-     * @return The estimated score of the route to the restaurant.
-     */
-    double getEstimatedScore();
-
-    /**
-     * Sets the previous node in the route.
-     */
-    void setPrevious(INode previous);
 
     /**
      * Sets the score of the route to this node.
@@ -38,7 +33,12 @@ public interface INode extends Comparable<INode>
     void setRouteScore(double routeScore);
 
     /**
-     * Sets the estimated score of the route to the restaurant.
+     * @return The estimated score of the route to the restaurant.
+     */
+    double getEstimatedScore();
+
+    /**
+     * Sets the estimated score of the node to the destination (fScore).
      */
     void setEstimatedScore(double estimatedScore);
 
@@ -50,17 +50,19 @@ public interface INode extends Comparable<INode>
 
     /**
      * Represents a {@link INode} direction.
+     * <p>
+     * An angle of 999 is used to indicate that the bearing is not known (the drone is hovering at the position).
      */
-    record Direction(LngLat position, double angle)
+    record Direction(LngLat position, double angle, long ticksSinceStart)
     {
         /**
          * Constructs a direction with no angle.
          *
          * @param position the position of the direction.
          */
-        Direction(LngLat position)
+        Direction(LngLat position, long ticksSinceStart)
         {
-            this(position, 999);
+            this(position, 999, ticksSinceStart);
         }
     }
 }
