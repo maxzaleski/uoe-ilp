@@ -12,7 +12,6 @@ public class PathFinder implements IPathFinder
     final private LngLatHandling lngLatHandler;
     final private NamedRegion boundary;
     final private NamedRegion[] noFlyZones;
-    final private Map<LngLat, Node> seenMap;
     final private Map<LngLat, Double> anglesMap;
 
     public PathFinder(NamedRegion boundary, NamedRegion[] noFlyZones)
@@ -21,7 +20,6 @@ public class PathFinder implements IPathFinder
         this.boundary = boundary;
         this.noFlyZones = noFlyZones;
 
-        this.seenMap = new HashMap<>();
         this.anglesMap = new HashMap<>();
     }
 
@@ -84,11 +82,9 @@ public class PathFinder implements IPathFinder
         {
             final double angle = i * 22.5;
             LngLat nextPosition = lngLatHandler.nextPosition(position, angle);
-            if (!seenMap.containsKey(nextPosition) && !isWithinBoundary(nextPosition))
+            if (!isWithinBoundary(nextPosition))
             {
                 neighbours.add(nextPosition);
-
-                seenMap.put(nextPosition, new Node(nextPosition));
                 anglesMap.put(nextPosition, angle);
             }
         }
