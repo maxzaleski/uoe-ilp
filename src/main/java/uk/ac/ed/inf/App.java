@@ -63,6 +63,8 @@ public class App
 
     public static void main(String[] args)
     {
+        final long startTime = System.nanoTime();
+
         final String dateArg = args[0];
         final String apiBaseArg = args[1];
         final String seed = args[2];
@@ -74,7 +76,7 @@ public class App
             logger.info("[system] starting PizzaDronz " + Map.of(
                     "date", dateArg,
                     "apiBase", apiBaseArg,
-                    "seed (ignored)", seed
+                    "seed(ignored)", seed
             ));
         } catch (IllegalArgumentException e)
         {
@@ -100,6 +102,8 @@ public class App
                 System.exit(1);
             }
 
+            logger.info("[system] begin data fetching...");
+
             // [2.2] Fetch restaurants.
             final Restaurant[] restaurants = apiClient.getRestaurants();
             //       Optimise later operations by mapping menu items to their respective restaurant instance;
@@ -116,6 +120,8 @@ public class App
                 System.exit(0);
             } else
             {
+                logger.info("[system] received " + orders.length + " orders, validating...");
+
                 // [2.3.1] Validate orders.
                 final OrderValidation validator = new OrderValidator();
                 ordersToDeliver = Arrays.stream(orders)
@@ -139,37 +145,50 @@ public class App
             noFlyZones = apiClient.getNoFlyZones();
         } catch (Exception e)
         {
-            logger.severe("[system] failed to fetch or process data: " + e.getMessage());
+            logger.severe("[system] failed to fetch or process necessary API data...");
             handleException(e);
         }
 
-        logger.info("[system] begin processing " + ordersToDeliver.length + " orders...");
+        logger.info("[system] fetching done, begin processing " + ordersToDeliver.length + " orders...");
 
         // [3] Calculate the shortest path between Appleton Tower and each restaurant.
         final IPathFinder pathFinder = new PathFinder(boundary, noFlyZones);
         final List<IPathFinder.Result> calculationResults = new ArrayList<>();
         Arrays.stream(ordersToDeliver).forEach(order ->
         {
-            logger.info(order.getOrderNo());
-
             // (i) We have validated that each item in the order is from the same restaurant.
             //     In [2.2], we have mapped each menu item to its restaurant instance, as to retrieve its coordinates
             //     in O(1) rather than O(n) time.
             final Restaurant restaurant = restaurantMap.get(order.getPizzasInOrder()[0].name());
 
+            final String restName = restaurant.name();
             final LngLat restPos = restaurant.location();
 
-            final IPathFinder.Result result = pathFinder.findRoute(AT_POSITION, restPos);
+            // [3.1] Calculate the shortest path between Appleton Tower and the restaurant.
+            IPathFinder.Result result = pathFinder.findRoute(AT_POSITION, restPos);
             result.setOrderNo(order.getOrderNo());
 
+            if (result.getOk())
+                calculationResults.add(result);
+            else
+                logger.warning(String.format("[order#%s] failed to find route to '%s' (%s)",
+                        result.getOrderNo(),
+                        restName,
+                        restPos));
+
+            result = pathFinder.findRoute(restPos, AT_POSITION);
+            result.setOrderNo(order.getOrderNo());
+
+            // [3.2] Calculate the shortest path between the restaurant and Appleton Tower.
             if (result.getOk())
             {
                 calculationResults.add(result);
                 order.setOrderStatus(OrderStatus.DELIVERED);
             } else
-                logger.warning(String.format("[order#%s] failed to find route to '%s' (%s)",
+                logger.warning(String.format("[order#%s] failed to find route back to '%s' from '%s' (%s)",
                         result.getOrderNo(),
-                        restaurant.name(),
+                        "Appleton Tower",
+                        restName,
                         restPos));
         });
 
@@ -188,9 +207,13 @@ public class App
                             toArray(LngLat[]::new));
         } catch (Exception e)
         {
-            logger.severe("[system] failed to create output files: " + e.getMessage());
+            logger.severe("[system] failed to create result files...");
             handleException(e);
         }
+
+        logger.info(String.format("[system] successfully processed %s orders (completed in %.2fs).",
+                ordersToDeliver.length,
+                (System.nanoTime() - startTime) / 1e9));
     }
 
     /**
@@ -204,7 +227,7 @@ public class App
     {
         // Validate received date.
         if (date == null || date.isEmpty())
-            throw new IllegalArgumentException("argument 'date' cannot be null|empty");
+            throw new IllegalArgumentException("argument[0] 'date' cannot be null|empty");
         else
         {
             final DateFormat sdf = new SimpleDateFormat(DATE_FMT);
@@ -216,20 +239,20 @@ public class App
             } catch (ParseException e)
             {
                 throw new IllegalArgumentException(
-                        String.format("argument 'date' must be of format '%s'; received: '%s'", DATE_FMT, date));
+                        String.format("argument[0] 'date' must be of format '%s'; received: '%s'", DATE_FMT, date));
             }
         }
 
         // Validate received API base.
         if (apiBase == null || apiBase.isEmpty())
-            throw new IllegalArgumentException("argument 'apiBase' cannot be null|empty");
+            throw new IllegalArgumentException("argument[1] 'apiBase' cannot be null|empty");
         else
         {
             final boolean isURL = apiBase.matches("https?://.*");
             final boolean isIPv4 = apiBase.matches("^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\\.|$)){4}$");
             if (!isURL && !isIPv4)
                 throw new IllegalArgumentException(
-                        String.format("argument 'apiBase' must be of standard URL/IPv4 format; received: '%s' ", apiBase));
+                        String.format("argument[1] 'apiBase' must be of standard URL/IPv4 format; received: '%s' ", apiBase));
         }
     }
 

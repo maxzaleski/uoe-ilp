@@ -14,7 +14,7 @@ import java.net.URL;
 import java.util.Arrays;
 
 /**
- * Represents the client for the application's RESTful API (Application Programming Interface).
+ * Represents the client for the application's RESTful API.
  */
 public class APIClient implements IAPIClient
 {
