@@ -23,12 +23,12 @@ public class Node implements INode
     /**
      * Constructs a node.
      *
-     * @param previous       the previous node in the route.
+     * @param previous       the previous node in the path.
      *                       if this is null, then this node is the starting node.
      * @param direction      the direction of the node.
-     * @param routeScore     the score of the route to this node.
+     * @param routeScore     the score of the path to this node.
      *                       if this is {@link Double#POSITIVE_INFINITY}, then this node is unreachable.
-     * @param estimatedScore the estimated score of the route to the restaurant.
+     * @param estimatedScore the estimated score of the path to the restaurant.
      *                       if this is {@link Double#POSITIVE_INFINITY}, then this node is unreachable.
      */
     public Node(INode previous, Direction direction, double routeScore, double estimatedScore)

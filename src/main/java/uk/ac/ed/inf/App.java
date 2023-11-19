@@ -175,7 +175,7 @@ public class App
                 if (result.getOk())
                     calculationResults.add(result);
                 else
-                    logger.warning(String.format("[order#%s] failed to find route to '%s' (%s)",
+                    logger.warning(String.format("[order#%s] failed to find path to '%s' (%s)",
                             result.getOrderNo(),
                             restName,
                             restPos));
@@ -189,7 +189,7 @@ public class App
                     calculationResults.add(result);
                     order.setOrderStatus(OrderStatus.DELIVERED);
                 } else
-                    logger.warning(String.format("[order#%s] failed to find return route to '%s' from '%s' (%s)",
+                    logger.warning(String.format("[order#%s] failed to find return path to '%s' from '%s' (%s)",
                             result.getOrderNo(),
                             "Appleton Tower",
                             restName,
@@ -203,22 +203,30 @@ public class App
         // [4] Write items to their respective files.
         try
         {
+            // [4.1] Write the today's orders.
             fileWriter.writeOrders(orders);
-            fileWriter.writeFlightPath(
-                    calculationResults.stream()
-                            .filter(IPathFinder.Result::getOk) // Only write successful results.
-                            .toArray(IPathFinder.Result[]::new));
-            fileWriter.writeGeoJSON(
-                    calculationResults.stream()
-                            .flatMap(result -> result.getRoute().stream())
-                            .map(INode.Direction::position).
-                            toArray(LngLat[]::new));
+
+            final IPathFinder.Result[] successfulResults = calculationResults.stream()
+                    .filter(IPathFinder.Result::getOk) // (only write successful results)
+                    .toArray(IPathFinder.Result[]::new);
+
+            // [4.2] Write the flight path for each order.
+            fileWriter.writeFlightPath(successfulResults);
+
+            final LngLat[] flattenedPositions = calculationResults.stream()
+                    .flatMap(result -> result.getRoute().stream())
+                    .map(INode.Direction::position)
+                    .toArray(LngLat[]::new);
+
+            // [4.3] Write the drone's flight path as a flattened GeoJSON feature.
+            fileWriter.writeGeoJSON(flattenedPositions);
         } catch (Exception e)
         {
             logger.severe("[system] failed to create result files...");
             handleException(e);
         }
 
+        // [5] Program termination.
         logger.info(String.format("[system] finished processing %s orders (completed in %.2fs).",
                 ordersToDeliver.length,
                 (System.nanoTime() - startTime) / 1e9));
@@ -251,6 +259,7 @@ public class App
             }
         }
 
+        // TODO: revisit prior to submission.
         // Validate received API base.
         if (apiBase == null || apiBase.isEmpty())
             throw new IllegalArgumentException("argument[1] 'apiBase' cannot be null|empty");
@@ -271,7 +280,8 @@ public class App
      */
     private static void handleException(Exception e)
     {
-        e.printStackTrace();
+        //noinspection CallToPrintStackTrace
+        e.printStackTrace(); // (Already prints to System.err)
         System.exit(1);
     }
 }

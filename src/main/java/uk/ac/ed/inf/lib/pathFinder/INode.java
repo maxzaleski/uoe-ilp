@@ -3,17 +3,17 @@ package uk.ac.ed.inf.lib.pathFinder;
 import uk.ac.ed.inf.ilp.data.LngLat;
 
 /**
- * Represents a node in the route.
+ * Represents a node in the path.
  */
 public interface INode extends Comparable<INode>
 {
     /**
-     * @return The previous node in the route.
+     * @return The previous node in the path.
      */
     INode getPrevious();
 
     /**
-     * Sets the previous node in the route.
+     * Sets the previous node in the path.
      */
     void setPrevious(INode previous);
 
@@ -23,17 +23,17 @@ public interface INode extends Comparable<INode>
     Direction getDirection();
 
     /**
-     * @return The score of the route to this node (gScore).
+     * @return The score of the path to this node (gScore).
      */
     double getRouteScore();
 
     /**
-     * Sets the score of the route to this node.
+     * Sets the score of the path to this node.
      */
     void setRouteScore(double routeScore);
 
     /**
-     * @return The estimated score of the route to the restaurant.
+     * @return The estimated score of the path to the restaurant.
      */
     double getEstimatedScore();
 

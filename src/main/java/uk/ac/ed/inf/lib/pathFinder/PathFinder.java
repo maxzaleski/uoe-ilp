@@ -68,7 +68,7 @@ public class PathFinder implements IPathFinder
                 current = openSet.poll();
                 final LngLat currentPos = current.getDirection().position();
 
-                // Check if the current node is close to the destination; if so, we have found a route.
+                // Check if the current node is close to the destination; if so, we have found a path.
                 // Note the use of `isCloseTo` rather than `equals` to account for possible inaccuracies in the position
                 // calculation.
                 if (lngLatHandler.isCloseTo(currentPos, toPos))

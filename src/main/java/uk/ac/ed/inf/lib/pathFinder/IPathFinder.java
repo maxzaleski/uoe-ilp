@@ -26,7 +26,7 @@ public interface IPathFinder
      */
     class Result
     {
-        private List<INode.Direction> route;
+        private List<INode.Direction> path;
         private String orderNo;
         private boolean ok;
 
@@ -34,11 +34,11 @@ public interface IPathFinder
         {
             this.ok = false;
             this.orderNo = "";
-            this.route = new ArrayList<>();
+            this.path = new ArrayList<>();
         }
 
         /**
-         * @return the order number associated with the route.
+         * @return the order number associated with the path.
          */
         public String getOrderNo()
         {
@@ -46,7 +46,7 @@ public interface IPathFinder
         }
 
         /**
-         * @return true if a route was found, false otherwise.
+         * @return true if a path was found, false otherwise.
          */
         public boolean getOk()
         {
@@ -54,15 +54,15 @@ public interface IPathFinder
         }
 
         /**
-         * @return the directions constituting the route; empty if no route was found.
+         * @return the directions constituting the path; empty if no path was found.
          */
         public List<INode.Direction> getRoute()
         {
-            return route;
+            return path;
         }
 
         /**
-         * Sets the order number associated with the route.
+         * Sets the order number associated with the path.
          */
         public void setOrderNo(String orderNo)
         {
@@ -82,15 +82,15 @@ public interface IPathFinder
          */
         public void setRoute(INode.Direction from, INode current)
         {
-            route.add(from);
+            path.add(from);
             while (current != null)
             {
-                route.add(current.getDirection());
+                path.add(current.getDirection());
                 current = current.getPrevious();
             }
 
-            // Assign the sorted list of directions as the route.
-            route = route.stream()
+            // Assign the sorted list of directions as the path.
+            path = path.stream()
                     .sorted(Comparator.comparingLong(INode.Direction::ticksSinceStart))
                     .toList();
         }
