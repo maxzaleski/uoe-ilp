@@ -1,4 +1,4 @@
-package uk.ac.ed.inf.api.dtos;
+package uk.ac.ed.inf.lib.api.dtos;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 

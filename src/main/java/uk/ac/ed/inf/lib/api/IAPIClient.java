@@ -1,4 +1,4 @@
-package uk.ac.ed.inf.api;
+package uk.ac.ed.inf.lib.api;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import uk.ac.ed.inf.ilp.data.NamedRegion;

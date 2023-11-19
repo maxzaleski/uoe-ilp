@@ -1,17 +1,23 @@
 package uk.ac.ed.inf;
 
-import uk.ac.ed.inf.api.APIClient;
+import uk.ac.ed.inf.factories.DataObjectsFactory;
+import uk.ac.ed.inf.ilp.constant.OrderStatus;
 import uk.ac.ed.inf.ilp.constant.OrderValidationCode;
 import uk.ac.ed.inf.ilp.data.LngLat;
 import uk.ac.ed.inf.ilp.data.NamedRegion;
 import uk.ac.ed.inf.ilp.data.Order;
 import uk.ac.ed.inf.ilp.data.Restaurant;
-import uk.ac.ed.inf.pathFinder.PathFinder;
+import uk.ac.ed.inf.ilp.interfaces.OrderValidation;
+import uk.ac.ed.inf.lib.api.APIClient;
+import uk.ac.ed.inf.lib.pathFinder.IPathFinder;
+import uk.ac.ed.inf.lib.pathFinder.PathFinder;
+import uk.ac.ed.inf.lib.systemFileWriter.ISystemFileWriter;
+import uk.ac.ed.inf.lib.systemFileWriter.SystemFileWriter;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.*;
 import java.util.logging.Logger;
 
 /**
@@ -34,10 +40,14 @@ import java.util.logging.Logger;
  * This program outputs the following files under {@value SystemFileWriter#LOCATION}:
  * <ul>
  *  <li><i>deliveries-YYYY-MM-DD.json</i>: a JSON file containing the orders to be delivered for the given date.</li>
- *  <li><i>flightpath-YYYY-MM-DD.json</i> a JSON file containing the (flatten) moves constituting the drone's flight path
- *     for each order for the given date.</li>
- *  <li><i>geojson-YYYY-MM-DD.json</i>: a GeoJSON file containing the moves constituting the drone's flight path for each
- *     order for the given date.</li>
+ *  <li>
+ *      <i>flightpath-YYYY-MM-DD.json</i> a JSON file containing the (flatten) moves constituting the drone's flight path
+ *      for each order for the given date.
+ *  </li>
+ *  <li>
+ *      <i>drone-YYYY-MM-DD.geojson</i>: a GeoJSON file containing a single 'lineString' feature representing the drone's
+ *      flight path for each order for the given date.
+ *      </li>
  *   </ul>
  * </p>
  *
@@ -46,21 +56,23 @@ import java.util.logging.Logger;
 public class App
 {
     final private static Logger logger = Logger.getLogger("PizzaDronz");
+    final private static String DATE_FMT = "yyyy-MM-dd";
+    final private static LngLat AT_POSITION = new LngLat(-3.186874, 55.944494);
 
     public static void main(String[] args)
     {
         final String dateArg = args[0];
-        final String apiURLArg = args[1];
+        final String apiBaseArg = args[1];
         final String seed = args[2];
 
-        // [setup]
+        // [1] Program setup.
         try
         {
-            validateArgs(dateArg, apiURLArg);
+            validateArgs(dateArg, apiBaseArg);
             logger.info("[system] starting PizzaDronz " + Map.of(
                     "date", dateArg,
-                    "apiURL", apiURLArg,
-                    "seed", seed
+                    "apiBase", apiBaseArg,
+                    "seed (ignored)", seed
             ));
         } catch (IllegalArgumentException e)
         {
@@ -68,128 +80,153 @@ public class App
             System.exit(1);
         }
 
-        final APIClient apiClient = new APIClient(apiURLArg);
-        final SystemFileWriter fileWriter = new SystemFileWriter(dateArg, logger);
+        final APIClient apiClient = new APIClient(apiBaseArg, new DataObjectsFactory());
+        final ISystemFileWriter fileWriter = new SystemFileWriter(dateArg, logger);
 
-        // [execute]
+        // [2] Data fetching and validation.
+        Map<String, Restaurant> restaurantMap = new HashMap<>();
+        Order[] orders = new Order[0];
+        Order[] ordersToDeliver = orders;
+        NamedRegion boundary = null;
+        NamedRegion[] noFlyZones = new NamedRegion[0];
         try
         {
-
-            // [1] API health check.
+            // [2.1] API health check.
             if (!apiClient.isAlive())
             {
-                logger.severe("[system] API failed health check, exiting...");
+                logger.severe("[system] API is unreachable, exiting...");
                 System.exit(1);
             }
 
-            // [2] Fetch restaurants.
+            // [2.2] Fetch restaurants.
             final Restaurant[] restaurants = apiClient.getRestaurants();
-            //     Optimise later operations by mapping menu items to their respective restaurant instance;
-            //     this is done to avoid having to perform a linear search for each order when calculating the flight
-            //     path.
-            final Map<String, Restaurant> restaurantMap = new HashMap<>();
+            //       Optimise later operations by mapping menu items to their respective restaurant instance;
+            //       this is done to avoid having to perform a linear search for each order when calculating the flight
+            //       path.
             Arrays.stream(restaurants).forEach(restaurant ->
                     Arrays.stream(restaurant.menu()).forEach(pizza -> restaurantMap.put(pizza.name(), restaurant)));
 
-            // [3] Fetch orders for the specified date and validate them.
-            Order[] orders = apiClient.getOrdersByISODate(dateArg);
+            // [2.3] Fetch orders for the specified date.
+            orders = apiClient.getOrdersByISODate(dateArg);
             if (orders.length == 0)
             {
                 logger.info("[system] no orders to process for " + dateArg + ", exiting...");
                 System.exit(0);
+            } else
+            {
+                // [2.3.1] Validate orders.
+                final OrderValidation validator = new OrderValidator();
+                ordersToDeliver = Arrays.stream(orders)
+                        .filter(order ->
+                        {
+                            validator.validateOrder(order, restaurants);
+                            if (order.getOrderValidationCode() != OrderValidationCode.NO_ERROR)
+                            {
+                                logger.warning(String.format("[order#%s] ignored: code '%s'",
+                                        order.getOrderNo(),
+                                        order.getOrderValidationCode()));
+                                return false;
+                            }
+                            return true;
+                        })
+                        .toArray(Order[]::new);
             }
-            logger.info("[system] begin processing " + orders.length + " orders...");
 
-            orders = filterInvalidOrders(orders, restaurants);
-
-            // [4] Fetch central area and no-fly zones.
-            final NamedRegion boundary = apiClient.getCentralAreaCoordinates();
-            final NamedRegion[] noFlyZones = apiClient.getNoFlyZones();
-
-            final PathFinder pathFinder = new PathFinder(seed, boundary, noFlyZones);
-//            final Map<String, PathFinder.Move[]> flightPathMap = new HashMap<>();
-
-            final LngLat appletonTower = new LngLat(-3.186874, 55.944494);
-            final LngLat to = new LngLat(-3.179798972064253, 55.939884084483);
-//            final LngLat to = new LngLat(-3.1810810679852035, 55.938910643735845);
-//            final LngLat to = new LngLat(-3.1912869215011597, 55.945535152517735);
-//            final LngLat to = new LngLat(-3.1838572025299072, 55.94449876875712);
-//            final LngLat to = new LngLat(-3.202541470527649, 55.943284737579376);
-
-            var TEST_OUT = new ArrayList<LngLat>();
-            TEST_OUT.add(to);
-            TEST_OUT.addAll(pathFinder.findRoute(appletonTower, to));
-            TEST_OUT.add(appletonTower);
-
-            fileWriter.writeCoordinates(TEST_OUT.toArray(LngLat[]::new));
-
-            // TODO: remove
-//            pathFinder.findShortestPath(restaurantMap
-//                    .get(orders[0].getPizzasInOrder()[0].name())
-//                    .location());
-
-            // [5] Calculate the flight path for each order.
-//            Arrays.stream(orders).forEach(order ->
-//            {
-//                // (i) We have validated that each item in the order is from the same restaurant.
-//                //     In [2], we have mapped each menu item to its restaurant instance, as to retrieve its coordinates
-//                //     in O(1) rather than O(n) time.
-//                final LngLat restaurantCoords = restaurantMap
-//                        .get(order.getPizzasInOrder()[0].name())
-//                        .location();
-//                flightPathMap.put(order.getOrderNo(), pathFinder.findShortestPath(restaurantCoords));
-//            });
-
-            // [6] Write items to their respective files.
-//            fileWriter.writeOrders(orders);
-//            fileWriter.writeFlightPaths(flightPathMap);
-            // TODO: geojson
+            // [2.4] Fetch central area and no-fly zones.
+            boundary = apiClient.getCentralAreaCoordinates();
+            noFlyZones = apiClient.getNoFlyZones();
         } catch (Exception e)
         {
-            logger.severe("[system] a fatal error as occurred:");
-            e.printStackTrace();
-            System.exit(1);
+            logger.severe("[system] failed to fetch or process data: " + e.getMessage());
+            handleException(e);
         }
-    }
 
-    /**
-     * Filters out invalid orders by checking their validation code.
-     *
-     * @param orders      the orders to filter.
-     * @param restaurants the restaurants to validate the orders against.
-     * @return the filtered orders with no validation errors.
-     */
-    private static Order[] filterInvalidOrders(Order[] orders, Restaurant[] restaurants)
-    {
-        final OrderValidator orderValidator = new OrderValidator();
-        return Arrays.stream(orders).
-                filter(order ->
-                {
-                    final OrderValidationCode code = orderValidator
-                            .validateOrder(order, restaurants)
-                            .getOrderValidationCode();
-                    if (code == OrderValidationCode.NO_ERROR) return true;
+        logger.info("[system] begin processing " + ordersToDeliver.length + " orders...");
 
-                    logger.warning(String.format("[order#%s] ignored: code '%s'", order.getOrderNo(), code));
-                    return false;
-                }).
-                toArray(Order[]::new);
+        // [3] Calculate the shortest path between Appleton Tower and each restaurant.
+        final IPathFinder pathFinder = new PathFinder(boundary, noFlyZones);
+        final List<LngLat> paths = new ArrayList<>();
+        Arrays.stream(ordersToDeliver).forEach(order ->
+        {
+            // (i) We have validated that each item in the order is from the same restaurant.
+            //     In [2.2], we have mapped each menu item to its restaurant instance, as to retrieve its coordinates
+            //     in O(1) rather than O(n) time.
+            final Restaurant restaurant = restaurantMap.get(order.getPizzasInOrder()[0].name());
+
+            final String restName = restaurant.name();
+            final LngLat restPos = restaurant.location();
+            final String orderNo = order.getOrderNo();
+
+            final IPathFinder.Result result = pathFinder.findRoute(AT_POSITION, restPos);
+            if (result.ok())
+            {
+                paths.addAll(result.route());
+                order.setOrderStatus(OrderStatus.DELIVERED);
+            } else
+                logger.warning(
+                        String.format("[order#%s] failed to find route to '%s' (%s)", orderNo, restName, restPos));
+        });
+
+        // [4] Write items to their respective files.
+        try
+        {
+            fileWriter.writeOrders(orders);
+            fileWriter.writeGeoJson(paths.toArray(LngLat[]::new));
+        } catch (Exception e)
+        {
+            logger.severe("[system] failed to save calculations:");
+            handleException(e);
+        }
     }
 
     /**
      * Validates the program arguments.
      *
-     * @param date the date to validate.
-     * @param url  the URL to validate.
+     * @param date    the string to validate (expects yyyy-MM-dd).
+     * @param apiBase the string to validate (expects valid URL or IPv4).
      * @throws IllegalArgumentException if any of the arguments are invalid.
      */
-    private static void validateArgs(String date, String url) throws IllegalArgumentException
+    private static void validateArgs(String date, String apiBase) throws IllegalArgumentException
     {
-        if (date == null || date.isEmpty() || !date.matches("\\d{4}-\\d{2}-\\d{2}"))
-            throw new IllegalArgumentException(
-                    String.format("argument 'date' cannot be null|empty, and must be of format YYYY-MM-DD; received: '%s'", date));
-        if (url == null || url.isEmpty() || !url.matches("https?://.*"))
-            throw new IllegalArgumentException(
-                    String.format("argument 'url' cannot be null|empty, and must be of standard URL format; received: '%s' ", url));
+        // Validate received date.
+        if (date == null || date.isEmpty())
+            throw new IllegalArgumentException("argument 'date' cannot be null|empty");
+        else
+        {
+            final DateFormat sdf = new SimpleDateFormat(DATE_FMT);
+            sdf.setLenient(false);
+
+            try
+            {
+                sdf.parse(date);
+            } catch (ParseException e)
+            {
+                throw new IllegalArgumentException(
+                        String.format("argument 'date' must be of format '%s'; received: '%s'", DATE_FMT, date));
+            }
+        }
+
+        // Validate received API base.
+        if (apiBase == null || apiBase.isEmpty())
+            throw new IllegalArgumentException("argument 'apiBase' cannot be null|empty");
+        else
+        {
+            final boolean isURL = apiBase.matches("https?://.*");
+            final boolean isIPv4 = apiBase.matches("^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\\.|$)){4}$");
+            if (!isURL && !isIPv4)
+                throw new IllegalArgumentException(
+                        String.format("argument 'apiBase' must be of standard URL/IPv4 format; received: '%s' ", apiBase));
+        }
+    }
+
+    /**
+     * Handles an exception by printing its stack trace and exiting the program with a non-zero exit code.
+     *
+     * @param e the exception to handle.
+     */
+    private static void handleException(Exception e)
+    {
+        e.printStackTrace();
+        System.exit(1);
     }
 }

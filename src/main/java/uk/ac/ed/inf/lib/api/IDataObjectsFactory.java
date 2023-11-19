@@ -1,8 +1,11 @@
-package uk.ac.ed.inf.api.factories;
+package uk.ac.ed.inf.lib.api;
 
-import uk.ac.ed.inf.api.dtos.*;
 import uk.ac.ed.inf.ilp.data.*;
+import uk.ac.ed.inf.lib.api.dtos.*;
 
+/**
+ * A factory for creating data objects from DTOs.
+ */
 public interface IDataObjectsFactory
 {
     /**

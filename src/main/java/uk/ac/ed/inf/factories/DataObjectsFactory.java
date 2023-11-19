@@ -1,13 +1,11 @@
-package uk.ac.ed.inf.api.factories;
+package uk.ac.ed.inf.factories;
 
-import uk.ac.ed.inf.api.dtos.*;
 import uk.ac.ed.inf.ilp.data.*;
+import uk.ac.ed.inf.lib.api.IDataObjectsFactory;
+import uk.ac.ed.inf.lib.api.dtos.*;
 
 import java.util.Arrays;
 
-/**
- * A factory for creating data objects from received API DTOs (Data Transfer Object).
- */
 public class DataObjectsFactory implements IDataObjectsFactory
 {
     @Override
@@ -37,7 +35,7 @@ public class DataObjectsFactory implements IDataObjectsFactory
     @Override
     public Order createOrder(OrderDto dto)
     {
-        return new Order(
+        final Order order = new Order(
                 dto.getOrderNo(),
                 dto.getOrderDate(),
                 dto.getPriceTotalInPence(),
@@ -45,6 +43,11 @@ public class DataObjectsFactory implements IDataObjectsFactory
                         .map(this::createPizza)
                         .toArray(Pizza[]::new),
                 createCreditCardInformation(dto.getCreditCardInformation()));
+
+        order.setOrderValidationCode(dto.getOrderValidationCode());
+        order.setOrderStatus(dto.getOrderStatus());
+
+        return order;
     }
 
     @Override

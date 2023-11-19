@@ -1,14 +1,13 @@
-package uk.ac.ed.inf.api;
+package uk.ac.ed.inf.lib.api;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import uk.ac.ed.inf.api.dtos.NamedRegionDto;
-import uk.ac.ed.inf.api.dtos.OrderDto;
-import uk.ac.ed.inf.api.dtos.RestaurantDto;
-import uk.ac.ed.inf.api.factories.DataObjectsFactory;
 import uk.ac.ed.inf.ilp.data.NamedRegion;
 import uk.ac.ed.inf.ilp.data.Order;
 import uk.ac.ed.inf.ilp.data.Restaurant;
+import uk.ac.ed.inf.lib.api.dtos.NamedRegionDto;
+import uk.ac.ed.inf.lib.api.dtos.OrderDto;
+import uk.ac.ed.inf.lib.api.dtos.RestaurantDto;
 
 import java.io.IOException;
 import java.net.URL;
@@ -21,16 +20,15 @@ public class APIClient implements IAPIClient
 {
     final private String url;
     final private ObjectMapper objectMapper;
-    final private DataObjectsFactory dataObjectsFactory;
+    final private IDataObjectsFactory dataObjectsFactory;
 
-    public APIClient(String url)
+    public APIClient(String url, IDataObjectsFactory dataObjectsFactory)
     {
         this.objectMapper = new ObjectMapper();
         this.objectMapper.registerModule(new JavaTimeModule());
 
-        this.dataObjectsFactory = new DataObjectsFactory();
-
         this.url = url;
+        this.dataObjectsFactory = dataObjectsFactory;
     }
 
     public boolean isAlive() throws IOException
