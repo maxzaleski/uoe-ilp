@@ -183,10 +183,10 @@ public class App
                             restName,
                             restPos));
 
+                // [3.2] Calculate the shortest path between the restaurant and Appleton Tower.
                 result = pathFinder.findRoute(restPos, AT_POSITION);
                 result.setOrderNo(order.getOrderNo());
 
-                // [3.2] Calculate the shortest path between the restaurant and Appleton Tower.
                 if (result.getOk())
                 {
                     pathResults.add(result);

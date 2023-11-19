@@ -51,7 +51,7 @@ public interface INode extends Comparable<INode>
     /**
      * Represents a {@link INode} direction.
      * <p>
-     * An angle of 999 is used to indicate that the bearing is not known (the drone is hovering at the position).
+     * An angle of 999 is used to indicate that the bearing is unknown (the drone is hovering at the position).
      */
     record Direction(LngLat position, double angle, long ticksSinceStart)
     {
