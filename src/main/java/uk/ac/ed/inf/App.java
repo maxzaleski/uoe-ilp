@@ -147,9 +147,11 @@ public class App
 
         // [3] Calculate the shortest path between Appleton Tower and each restaurant.
         final IPathFinder pathFinder = new PathFinder(boundary, noFlyZones);
-        final List<INode.Direction> directions = new ArrayList<>();
+        final List<IPathFinder.Result> calculationResults = new ArrayList<>();
         Arrays.stream(ordersToDeliver).forEach(order ->
         {
+            logger.info(order.getOrderNo());
+
             // (i) We have validated that each item in the order is from the same restaurant.
             //     In [2.2], we have mapped each menu item to its restaurant instance, as to retrieve its coordinates
             //     in O(1) rather than O(n) time.
@@ -158,13 +160,15 @@ public class App
             final LngLat restPos = restaurant.location();
 
             final IPathFinder.Result result = pathFinder.findRoute(AT_POSITION, restPos);
+            result.setOrderNo(order.getOrderNo());
+
             if (result.getOk())
             {
-                directions.addAll(result.getRoute());
+                calculationResults.add(result);
                 order.setOrderStatus(OrderStatus.DELIVERED);
             } else
                 logger.warning(String.format("[order#%s] failed to find route to '%s' (%s)",
-                        order.getOrderNo(),
+                        result.getOrderNo(),
                         restaurant.name(),
                         restPos));
         });
@@ -173,7 +177,15 @@ public class App
         try
         {
             fileWriter.writeOrders(orders);
-            fileWriter.writeGeoJson(directions.stream().map(INode.Direction::position).toArray(LngLat[]::new));
+            fileWriter.writeFlightPath(
+                    calculationResults.stream()
+                            .filter(IPathFinder.Result::getOk) // Only write successful results.
+                            .toArray(IPathFinder.Result[]::new));
+            fileWriter.writeGeoJSON(
+                    calculationResults.stream()
+                            .flatMap(result -> result.getRoute().stream())
+                            .map(INode.Direction::position).
+                            toArray(LngLat[]::new));
         } catch (Exception e)
         {
             logger.severe("[system] failed to create output files: " + e.getMessage());

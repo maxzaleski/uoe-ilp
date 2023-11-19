@@ -3,6 +3,7 @@ package uk.ac.ed.inf.lib.pathFinder;
 import uk.ac.ed.inf.ilp.data.LngLat;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -24,13 +25,23 @@ public interface IPathFinder
      */
     class Result
     {
-        private final List<INode.Direction> route;
+        private List<INode.Direction> route;
+        private String orderNo;
         private boolean ok;
 
         public Result()
         {
-            this.route = new ArrayList<>();
             this.ok = false;
+            this.orderNo = "";
+            this.route = new ArrayList<>();
+        }
+
+        /**
+         * @return the order number associated with the route.
+         */
+        public String getOrderNo()
+        {
+            return orderNo;
         }
 
         /**
@@ -47,6 +58,14 @@ public interface IPathFinder
         public List<INode.Direction> getRoute()
         {
             return route;
+        }
+
+        /**
+         * Sets the order number associated with the route.
+         */
+        public void setOrderNo(String orderNo)
+        {
+            this.orderNo = orderNo;
         }
 
         /**
@@ -68,6 +87,11 @@ public interface IPathFinder
                 route.add(current.getDirection());
                 current = current.getPrevious();
             }
+
+            // Assign the sorted list of directions as the route.
+            route = route.stream()
+                    .sorted(Comparator.comparingLong(INode.Direction::ticksSinceStart))
+                    .toList();
         }
     }
 }

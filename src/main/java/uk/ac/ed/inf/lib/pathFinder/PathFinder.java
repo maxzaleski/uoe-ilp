@@ -45,6 +45,7 @@ public class PathFinder implements IPathFinder
         //       using pre-defined ones.
 
         final IPathFinder.Result result = new Result();
+        result.getRoute().add(new INode.Direction(fromPos, getTicksSinceStart()));
 
         // A priority queue which sorts nodes by their estimated score (fScore).
         final Queue<INode> openSet = new PriorityQueue<>();
