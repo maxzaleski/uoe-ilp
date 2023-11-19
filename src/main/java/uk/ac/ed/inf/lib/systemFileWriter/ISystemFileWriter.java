@@ -16,7 +16,7 @@ public interface ISystemFileWriter
     String LOCATION = "resultfiles/";
 
     /**
-     * Writes the orders to <i>{@value LOCATION}deliveries-YYYY-MM-DD.json<i/>.
+     * Writes the orders to <i>{@value LOCATION}deliveries-yyyy-MM-dd.json<i/>.
      *
      * @param orders the orders to write to file.
      * @throws IllegalArgumentException if the orders cannot be written to file.
@@ -25,7 +25,7 @@ public interface ISystemFileWriter
     void writeOrders(Order[] orders) throws RuntimeException;
 
     /**
-     * Writes the drone's flight path as GeoJSON feature to <i>{@value LOCATION}drone-YYYY-MM-DD.geojson</i>.
+     * Writes the drone's flight path as GeoJSON feature to <i>{@value LOCATION}drone-yyyy-MM-dd.geojson</i>.
      *
      * @param path the coordinates constituting the drone's flight path for the day.
      * @throws IllegalArgumentException if the GeoJSON cannot be written to file.
@@ -34,7 +34,7 @@ public interface ISystemFileWriter
     void writeGeoJSON(LngLat[] path) throws RuntimeException;
 
     /**
-     * Writes the drone's flight path to <i>{@value LOCATION}flightpath-YYYY-MM-DD.json</>.
+     * Writes the drone's flight path to <i>{@value LOCATION}flightpath-yyyy-MM-dd.json</>.
      *
      * @param results the results of the path finding operation.
      * @throws IllegalArgumentException if the JSON cannot be written to file.

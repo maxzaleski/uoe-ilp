@@ -34,20 +34,20 @@ import java.util.logging.Logger;
  * <br>
  * This program accepts the following arguments:
  * <ul>
- *   <li>[0]: the date for which to process orders (<i>YYYY-MM-DD</i>)</li>
+ *   <li>[0]: the date for which to process orders (<i>yyyy-MM-dd</i>)</li>
  *   <li>[1]: the base URL of the RESTful API to consume</li>
  * </ul>
  *
  * <p>
  * This program outputs the following files under {@value SystemFileWriter#LOCATION}:
  * <ul>
- *  <li><i>deliveries-YYYY-MM-DD.json</i>: a JSON file containing the orders to be delivered for the given date.</li>
+ *  <li><i>deliveries-yyyy-MM-dd.json</i>: a JSON file containing the orders to be delivered for the given date.</li>
  *  <li>
- *      <i>flightpath-YYYY-MM-DD.json</i> a JSON file containing the (flatten) moves constituting the drone's flight path
+ *      <i>flightpath-yyyy-MM-dd.json</i> a JSON file containing the (flatten) moves constituting the drone's flight path
  *      for each order for the given date.
  *  </li>
  *  <li>
- *      <i>drone-YYYY-MM-DD.geojson</i>: a GeoJSON file containing a single 'lineString' feature representing the drone's
+ *      <i>drone-yyyy-MM-dd.geojson</i>: a GeoJSON file containing a single 'lineString' feature representing the drone's
  *      flight path for each order for the given date.
  *      </li>
  *   </ul>
@@ -57,13 +57,13 @@ import java.util.logging.Logger;
  */
 public class App
 {
-    final private static Logger logger = Logger.getLogger("PizzaDronz");
     final private static String DATE_FMT = "yyyy-MM-dd";
     final private static LngLat AT_POSITION = new LngLat(-3.186874, 55.944494);
 
     public static void main(String[] args)
     {
         final long startTime = System.nanoTime();
+        final Logger logger = Logger.getLogger("main");
 
         final String dateArg = args[0];
         final String apiBaseArg = args[1];
