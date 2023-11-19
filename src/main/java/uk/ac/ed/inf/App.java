@@ -36,19 +36,20 @@ import java.util.logging.Logger;
  * <ul>
  *   <li>[0]: the date for which to process orders (<i>yyyy-MM-dd</i>)</li>
  *   <li>[1]: the base URL of the RESTful API to consume</li>
+ *   <li>[2]: a seed to be used for random number generation (ignored)</li>
  * </ul>
  *
  * <p>
  * This program outputs the following files under {@value SystemFileWriter#LOCATION}:
  * <ul>
- *  <li><i>deliveries-yyyy-MM-dd.json</i>: a JSON file containing the orders to be delivered for the given date.</li>
+ *  <li><i>deliveries-yyyy-MM-dd.json</i>: a JSON file containing the orders for the given date.</li>
  *  <li>
- *      <i>flightpath-yyyy-MM-dd.json</i> a JSON file containing the (flatten) moves constituting the drone's flight path
+ *      <i>flightpath-yyyy-MM-dd.json</i> a JSON file containing the (flattened) moves constituting the drone's flight path
  *      for each order for the given date.
  *  </li>
  *  <li>
- *      <i>drone-yyyy-MM-dd.geojson</i>: a GeoJSON file containing a single 'lineString' feature representing the drone's
- *      flight path for each order for the given date.
+ *      <i>drone-yyyy-MM-dd.geojson</i>: a GeoJSON file containing a single (flattened) 'lineString' feature constituting
+ *      the drone's flight path for each order for the given date.
  *      </li>
  *   </ul>
  * </p>
