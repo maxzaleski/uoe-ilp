@@ -79,10 +79,13 @@ public interface IPathFinder
 
         /**
          * Reconstructs the path from the given node to the starting node.
+         *
+         * @param end     the actual end final node (destination).
+         * @param current the current node.
          */
-        public void setRoute(INode.Direction from, INode current)
+        public void setRoute(INode.Direction end, INode current)
         {
-            path.add(from);
+            path.add(end);
             while (current != null)
             {
                 path.add(current.getDirection());

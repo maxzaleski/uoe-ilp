@@ -21,6 +21,18 @@ import java.util.Optional;
  */
 public class OrderValidator implements OrderValidation
 {
+    final private LocalDate date;
+
+    /**
+     * Constructs an order validator.
+     *
+     * @param date the date of the order.
+     */
+    public OrderValidator(String date)
+    {
+        this.date = LocalDate.parse(date);
+    }
+
     /**
      * Validate an order and deliver a validated version where the `OrderStatus` and `OrderValidationCode` are set
      * accordingly.
@@ -83,6 +95,10 @@ public class OrderValidator implements OrderValidation
     {
         // [requirement] The order has been assigned a unique order number.
         if (order.getOrderNo().isEmpty())
+            return false;
+
+        // [requirement] The order was placed today.
+        if (!order.getOrderDate().equals(date))
             return false;
 
         // [requirement] The order has yet to be handled by the system.
@@ -195,7 +211,7 @@ public class OrderValidator implements OrderValidation
 
         // [requirement] The restaurant is open.
         final Restaurant restaurant = maybeRestaurant.get();
-        if (Arrays.stream(restaurant.openingDays()).noneMatch(day -> day == LocalDate.now().getDayOfWeek()))
+        if (Arrays.stream(restaurant.openingDays()).noneMatch(day -> day == date.getDayOfWeek()))
             return OrderValidationCode.RESTAURANT_CLOSED;
 
         // [requirement] All pizzas in the order are from the same restaurant.

@@ -66,6 +66,12 @@ public class App
         final long startTime = System.nanoTime();
         final Logger logger = Logger.getLogger("main");
 
+        if (args.length < 2)
+        {
+            logger.severe("[system] expected at least 2 arguments; received " + args.length);
+            System.exit(1);
+        }
+
         final String dateArg = args[0];
         final String apiBaseArg = args[1];
         final String seed = args[2];
@@ -78,7 +84,7 @@ public class App
                     "date", dateArg,
                     "apiBase", apiBaseArg,
                     "seed(ignored)", seed
-            ));
+            ) + "\n");
         } catch (IllegalArgumentException e)
         {
             logger.severe("[system] failed to start PizzaDronz: " + e.getMessage());
@@ -91,7 +97,6 @@ public class App
         Map<String, Restaurant> restaurantMap = new HashMap<>();
         Order[] orders = new Order[0];
         Order[] ordersToDeliver = orders;
-        NamedRegion boundary = null;
         NamedRegion[] noFlyZones = new NamedRegion[0];
 
         // [2] Data fetching and validation.
@@ -125,16 +130,16 @@ public class App
                 logger.info("[system] received " + orders.length + " orders, validating...");
 
                 // [2.3.1] Validate orders.
-                final OrderValidation validator = new OrderValidator();
+                final OrderValidation validator = new OrderValidator(dateArg);
                 ordersToDeliver = Arrays.stream(orders)
                         .filter(order ->
                         {
                             validator.validateOrder(order, restaurants);
                             if (order.getOrderValidationCode() != OrderValidationCode.NO_ERROR)
                             {
-                                logger.warning(String.format("[order#%s] ignored: code '%s'",
-                                        order.getOrderNo(),
-                                        order.getOrderValidationCode()));
+                                final String msg = String.format("[order#%s] ignored ", order.getOrderNo());
+                                logger.warning(msg + Map.of("code", order.getOrderValidationCode()));
+
                                 return false;
                             }
                             return true;
@@ -142,8 +147,7 @@ public class App
                         .toArray(Order[]::new);
             }
 
-            // [2.4] Fetch central area and no-fly zones.
-            boundary = apiClient.getCentralAreaCoordinates();
+            // [2.4] no-fly zones.
             noFlyZones = apiClient.getNoFlyZones();
         } catch (Exception e)
         {
@@ -151,16 +155,18 @@ public class App
             handleException(e);
         }
 
-        logger.info("[system] finished data fetching and validation.");
+        logger.info("[system] finished data fetching and validation.\n");
 
-        logger.info("[system] begin processing " + ordersToDeliver.length + " orders...");
+        logger.info("[system] begin flight path calculations for " + ordersToDeliver.length + " orders...");
 
-        final IPathFinder pathFinder = new PathFinder(boundary, noFlyZones);
+        final IPathFinder pathFinder = new PathFinder(noFlyZones);
         final List<IPathFinder.Result> pathResults = new ArrayList<>();
 
         // [3] Calculate the shortest path between Appleton Tower and each restaurant (and back).
         Arrays.stream(ordersToDeliver).forEach(order ->
         {
+            final long calcStartTime = System.nanoTime();
+
             // (i) We have validated that each item in the order is from the same restaurant.
             //     In [2.2], we have mapped each menu item to its restaurant instance, as to retrieve its coordinates
             //     in O(1) rather than O(n) time.
@@ -178,10 +184,13 @@ public class App
                 if (result.getOk())
                     pathResults.add(result);
                 else
+                {
                     logger.warning(String.format("[order#%s] failed to find path to '%s' (%s)",
                             result.getOrderNo(),
                             restName,
                             restPos));
+                    return;
+                }
 
                 // [3.2] Calculate the shortest path between the restaurant and Appleton Tower.
                 result = pathFinder.findRoute(restPos, AT_POSITION);
@@ -197,11 +206,21 @@ public class App
                             "Appleton Tower",
                             restName,
                             restPos));
+
+                final String msg = String.format("[order#%s] flight path processed ", result.getOrderNo());
+                logger.info(msg + Map.of(
+                        "to", restName,
+                        "took", String.format("%.2fms", (System.nanoTime() - calcStartTime) / 1e6))
+                );
             } catch (Exception e)
             {
                 logger.warning(String.format("[order#%s] %s", order.getOrderNo(), e.getMessage()));
             }
         });
+
+        logger.info(String.format("[system] finished flight path calculations for %d orders.\n", ordersToDeliver.length));
+
+        logger.info("[system] begin writing results...");
 
         // [4] Write items to their respective files.
         try
@@ -242,7 +261,7 @@ public class App
      * @param apiBase the string to validate (expects valid URL or IPv4).
      * @throws IllegalArgumentException if any of the arguments are invalid.
      */
-    private static void validateArgs(String date, String apiBase) throws IllegalArgumentException
+    public static void validateArgs(String date, String apiBase) throws IllegalArgumentException
     {
         // Validate received date.
         if (date == null || date.isEmpty())

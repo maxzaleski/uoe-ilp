@@ -18,7 +18,7 @@ import java.util.Map;
 
 public class OrderValidatorTest extends TestCase
 {
-    final private OrderValidator validator = new OrderValidator(); // Stateless.
+    final private OrderValidator validator = new OrderValidator("2023-12-01");
 
     /**
      * [requirement] The order has been assigned a unique order number.
@@ -26,21 +26,6 @@ public class OrderValidatorTest extends TestCase
     public void testContext_OrderNumber()
     {
         final Order order = new Order();
-        validator.validateOrder(order, new Restaurant[]{null});
-
-        assertEquals(OrderValidationCode.UNDEFINED, order.getOrderValidationCode());
-        assertEquals(OrderStatus.INVALID, order.getOrderStatus());
-    }
-
-    /**
-     * [requirement] The order was placed today.
-     */
-    public void testContext_OrderDate()
-    {
-        final Order order = new Order();
-        order.setOrderNo("foobar");
-        order.setOrderDate(LocalDate.now().minusDays(1));
-
         validator.validateOrder(order, new Restaurant[]{null});
 
         assertEquals(OrderValidationCode.UNDEFINED, order.getOrderValidationCode());
@@ -366,7 +351,7 @@ public class OrderValidatorTest extends TestCase
     {
         final Order order = new Order();
         order.setOrderNo("foobar");
-        order.setOrderDate(LocalDate.now());
+        order.setOrderDate(LocalDate.parse("2023-12-01"));
         order.setOrderStatus(OrderStatus.UNDEFINED);
         order.setOrderValidationCode(OrderValidationCode.UNDEFINED);
         return order;

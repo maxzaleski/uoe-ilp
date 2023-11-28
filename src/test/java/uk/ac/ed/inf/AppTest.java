@@ -1,38 +1,37 @@
 package uk.ac.ed.inf;
 
-import junit.framework.Test;
 import junit.framework.TestCase;
-import junit.framework.TestSuite;
 
 /**
  * Unit test for simple App.
  */
-public class AppTest 
-    extends TestCase
+public class AppTest extends TestCase
 {
-    /**
-     * Create the test case
-     *
-     * @param testName name of the test case
-     */
-    public AppTest( String testName )
+    public void testApp_IllegalArgument_Date()
     {
-        super( testName );
+        for (String date : new String[]{"0000-00-00", "2023-12-1", "2023-9-1", "01-12-2023"})
+        {
+            try
+            {
+                App.main(new String[]{date, "", ""});
+                fail("expected 'IllegalArgumentException' to be thrown");
+            } catch (IllegalArgumentException e)
+            {
+                assertTrue(e.getMessage().contains("date"));
+            }
+        }
     }
 
-    /**
-     * @return the suite of tests being tested
-     */
-    public static Test suite()
+    public void testApp_IllegalArgument_URL()
     {
-        return new TestSuite( AppTest.class );
-    }
-
-    /**
-     * Rigourous Test :-)
-     */
-    public void testApp()
-    {
-        assertTrue( true );
+        assertTrue(true);
+        try
+        {
+            App.main(new String[]{"0000-00-00", "htt"});
+            fail("expected 'IllegalArgumentException' to be thrown");
+        } catch (IllegalArgumentException e)
+        {
+            assertTrue(e.getMessage().contains("date"));
+        }
     }
 }
