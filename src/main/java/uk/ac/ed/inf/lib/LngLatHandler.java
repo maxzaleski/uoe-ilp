@@ -135,7 +135,6 @@ public class LngLatHandler implements LngLatHandling
             throw new IllegalArgumentException(message);
         }
 
-        // Convert degrees into radians.
         final double angleInRadi = Math.toRadians(angle);
         final double R = SystemConstants.DRONE_MOVE_DISTANCE; // (angular distance)
 

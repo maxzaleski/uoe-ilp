@@ -44,8 +44,8 @@ public class SystemFileWriter implements ISystemFileWriter
 
     public void writeOrders(Order[] orders) throws RuntimeException
     {
-        if (orders == null || orders.length == 0)
-            throw new IllegalArgumentException("nothing to write; orders is null or empty");
+        if (orders == null)
+            throw new IllegalArgumentException("nothing to write; orders is null");
 
         final SerialisableOrder[] writableOrders = Arrays.stream(orders).
                 map(SerialisableOrder::new).
@@ -56,19 +56,19 @@ public class SystemFileWriter implements ISystemFileWriter
 
     public void writeGeoJSON(LngLat[] path) throws RuntimeException
     {
-        if (path == null || path.length == 0)
-            throw new IllegalArgumentException("nothing to write; path is null or empty");
+        if (path == null)
+            throw new IllegalArgumentException("nothing to write; path is null");
 
         final GeoJSON geoJSON = new GeoJSON(null);
-        geoJSON.addLineString(path);
+        if (path.length > 0) geoJSON.addLineString(path);
 
         write(LOCATION + "/drone-" + date + ".geojson", geoJSON);
     }
 
     public void writeFlightPath(IPathFinder.Result[] results) throws RuntimeException
     {
-        if (results == null || results.length == 0)
-            throw new IllegalArgumentException("nothing to write; results is null or empty");
+        if (results == null)
+            throw new IllegalArgumentException("nothing to write; results is null");
 
         final List<SerialisableDroneMove> moves = Arrays.stream(results)
                 .flatMap(result ->
@@ -102,6 +102,6 @@ public class SystemFileWriter implements ISystemFileWriter
             throw new RuntimeException(String.format("failed to write data to '%s': %s", dest, e.getMessage()), e);
         }
 
-        logger.info(String.format("[system] finished writing to '%s'.", dest));
+        logger.info(String.format("[system] finished writing to '%s'", dest));
     }
 }

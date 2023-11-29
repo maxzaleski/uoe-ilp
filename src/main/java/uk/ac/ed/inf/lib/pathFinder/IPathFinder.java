@@ -46,6 +46,14 @@ public interface IPathFinder
         }
 
         /**
+         * Sets the order number associated with the path.
+         */
+        public void setOrderNo(String orderNo)
+        {
+            this.orderNo = orderNo;
+        }
+
+        /**
          * @return true if a path was found, false otherwise.
          */
         public boolean getOk()
@@ -59,14 +67,6 @@ public interface IPathFinder
         public List<INode.Direction> getRoute()
         {
             return path;
-        }
-
-        /**
-         * Sets the order number associated with the path.
-         */
-        public void setOrderNo(String orderNo)
-        {
-            this.orderNo = orderNo;
         }
 
         /**
@@ -85,10 +85,12 @@ public interface IPathFinder
          */
         public void setRoute(INode.Direction end, INode current)
         {
+            // [requirement] the drone must hover for one move at its destination (restaurant or when delivery to AT).
             path.add(end);
             while (current != null)
             {
-                path.add(current.getDirection());
+                // → Per the spec, we omit the starting position as it is not required.
+                if (current.getDirection().angle() != 999.0) path.add(current.getDirection());
                 current = current.getPrevious();
             }
 

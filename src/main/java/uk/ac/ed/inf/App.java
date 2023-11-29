@@ -28,7 +28,7 @@ import java.util.logging.Logger;
  * <p>
  * <br>
  * This program consumes a RESTful API to retrieve dynamic data, notably orders placed for a given date,
- * and calculates the shortest path between Appleton Tower and each restaurant from which an order has been placed.
+ * and calculates the shortest path between Appleton Tower <> each restaurant from which an order has been placed.
  *
  * <p>
  * <br>
@@ -66,25 +66,30 @@ public class App
         final long startTime = System.nanoTime();
         final Logger logger = Logger.getLogger("main");
 
-        if (args.length < 2)
-        {
-            logger.severe("[system] expected at least 2 arguments; received " + args.length);
-            System.exit(1);
-        }
-
-        final String dateArg = args[0];
-        final String apiBaseArg = args[1];
-        final String seed = args[2];
+        String dateArg = "";
+        String apiBaseArg = "";
 
         // [1] Program setup.
         try
         {
+            // [1.1] Check for sufficient arguments.
+            if (args.length < 2)
+            {
+                logger.severe("[system] expected 2 arguments; received " + args.length);
+                System.exit(1);
+            } else
+            {
+                dateArg = args[0];
+                apiBaseArg = args[1];
+            }
+
+            // [1.2] Validate received arguments.
             validateArgs(dateArg, apiBaseArg);
-            logger.info("[system] starting PizzaDronz... " + Map.of(
+
+            final var fields = Map.of(
                     "date", dateArg,
-                    "apiBase", apiBaseArg,
-                    "seed(ignored)", seed
-            ) + "\n");
+                    "apiBase", apiBaseArg);
+            logger.info("[system] starting PizzaDronz... " + fields + "\n");
         } catch (IllegalArgumentException e)
         {
             logger.severe("[system] failed to start PizzaDronz: " + e.getMessage());
@@ -96,42 +101,41 @@ public class App
 
         Map<String, Restaurant> restaurantMap = new HashMap<>();
         Order[] orders = new Order[0];
-        Order[] ordersToDeliver = orders;
+        Order[] ordersToProcess = orders;
         NamedRegion[] noFlyZones = new NamedRegion[0];
 
         // [2] Data fetching and validation.
         try
         {
-            // [2.1] API health check.
+            logger.info("[system] begin data fetching...");
+
+            // [2.1] Check for server heartbeat.
             if (!apiClient.isAlive())
             {
-                logger.severe("[system] API is unreachable, exiting...");
-                System.exit(1);
+                logger.severe("[system] Server is not accepting requests, exiting...");
+                System.exit(2);
             }
-
-            logger.info("[system] begin data fetching...");
 
             // [2.2] Fetch restaurants.
             final Restaurant[] restaurants = apiClient.getRestaurants();
             //       Optimise later operations by mapping menu items to their respective restaurant instance;
             //       this is done to avoid having to perform a linear search for each order when calculating the flight
             //       path.
-            Arrays.stream(restaurants).forEach(restaurant ->
-                    Arrays.stream(restaurant.menu()).forEach(pizza -> restaurantMap.put(pizza.name(), restaurant)));
+            Arrays.stream(restaurants).
+                    forEach(restaurant ->
+                            Arrays.stream(restaurant.menu()).
+                                    forEach(pizza -> restaurantMap.put(pizza.name(), restaurant)));
 
             // [2.3] Fetch orders for the specified date.
             orders = apiClient.getOrdersByISODate(dateArg);
-            if (orders.length == 0)
-            {
-                logger.info("[system] no orders to process for " + dateArg + ", exiting with no errors...");
-                System.exit(0);
-            } else
+            if (orders.length == 0) logger.info("[system] no orders to process");
+            else
             {
                 logger.info("[system] received " + orders.length + " orders, validating...");
 
                 // [2.3.1] Validate orders.
                 final OrderValidation validator = new OrderValidator(dateArg);
-                ordersToDeliver = Arrays.stream(orders)
+                ordersToProcess = Arrays.stream(orders)
                         .filter(order ->
                         {
                             validator.validateOrder(order, restaurants);
@@ -147,78 +151,90 @@ public class App
                         .toArray(Order[]::new);
             }
 
-            // [2.4] no-fly zones.
+            // [2.4] Fetch no-fly zones.
             noFlyZones = apiClient.getNoFlyZones();
         } catch (Exception e)
         {
-            logger.severe("[system] failed to fetch or process necessary API data...");
+            logger.severe("[system] failed to fetch or process required server data:");
             handleException(e);
         }
 
-        logger.info("[system] finished data fetching and validation.\n");
-
-        logger.info("[system] begin flight path calculations for " + ordersToDeliver.length + " orders...");
+        logger.info("[system] finished data fetching and validation\n");
 
         final IPathFinder pathFinder = new PathFinder(noFlyZones);
         final List<IPathFinder.Result> pathResults = new ArrayList<>();
 
-        // [3] Calculate the shortest path between Appleton Tower and each restaurant (and back).
-        Arrays.stream(ordersToDeliver).forEach(order ->
+        final int toProcessCount = ordersToProcess.length;
+
+        // [3] Process orders by calculating the shortest path between Appleton Tower and each restaurant (and back).
+        if (toProcessCount > 0)
         {
-            final long calcStartTime = System.nanoTime();
+            logger.info("[system] begin flight path calculations for " + toProcessCount + " orders...");
 
-            // (i) We have validated that each item in the order is from the same restaurant.
-            //     In [2.2], we have mapped each menu item to its restaurant instance, as to retrieve its coordinates
-            //     in O(1) rather than O(n) time.
-            final Restaurant restaurant = restaurantMap.get(order.getPizzasInOrder()[0].name());
-
-            final String restName = restaurant.name();
-            final LngLat restPos = restaurant.location();
-
-            try
+            Arrays.stream(ordersToProcess).forEach(order ->
             {
-                // [3.1] Calculate the shortest path between Appleton Tower and the restaurant.
-                IPathFinder.Result result = pathFinder.findRoute(AT_POSITION, restPos);
-                result.setOrderNo(order.getOrderNo());
+                final long calcStartTime = System.nanoTime();
+                final String orderNo = order.getOrderNo();
 
-                if (result.getOk())
-                    pathResults.add(result);
-                else
+                // (i) We have validated that each item in the order is from the same restaurant.
+                //     In [2.2], we have mapped each menu item to its restaurant instance, as to retrieve its coordinates
+                //     in O(1) rather than O(n) time.
+                final Restaurant restaurant = restaurantMap.get(order.getPizzasInOrder()[0].name());
+
+                final String restName = restaurant.name();
+                final LngLat restPos = restaurant.location();
+
+                try
                 {
-                    logger.warning(String.format("[order#%s] failed to find path to '%s' (%s)",
-                            result.getOrderNo(),
-                            restName,
-                            restPos));
-                    return;
+                    // [3.1] Calculate the shortest path between Appleton Tower and the restaurant.
+                    IPathFinder.Result result = pathFinder.findRoute(AT_POSITION, restPos);
+                    result.setOrderNo(orderNo);
+
+                    // → Handle outcome.
+                    if (result.getOk())
+                        pathResults.add(result);
+                    else
+                    {
+                        final var fields = Map.of(
+                                "from", "Appleton Tower",
+                                "to", restName,
+                                "toPos", restPos);
+                        logger.warning(String.format("[order#%s] failed to find path" + fields, orderNo));
+                        return;
+                    }
+
+                    // [3.2] Calculate the shortest path between the restaurant and Appleton Tower.
+                    result = pathFinder.findRoute(restPos, AT_POSITION);
+                    result.setOrderNo(order.getOrderNo());
+
+                    // → Handle outcome.
+                    if (result.getOk())
+                    {
+                        pathResults.add(result);
+                        order.setOrderStatus(OrderStatus.DELIVERED);
+                    } else
+                    {
+                        final var fields = Map.of(
+                                "to", "Appleton Tower",
+                                "from", restName,
+                                "fromPos", restPos);
+                        logger.warning(String.format("[order#%s] failed to find return path" + fields, orderNo));
+                        return;
+                    }
+
+                    // [3.3] Log calculation metrics.
+                    final var fields = Map.of(
+                            "restaurant", "<>" + restName,
+                            "took", String.format("%.2fms", (System.nanoTime() - calcStartTime) / 1e6));
+                    logger.info(String.format("[order#%s] flight path processed ", orderNo) + fields);
+                } catch (Exception e)
+                {
+                    logger.warning(String.format("[order#%s] %s", orderNo, e.getMessage()));
                 }
+            });
 
-                // [3.2] Calculate the shortest path between the restaurant and Appleton Tower.
-                result = pathFinder.findRoute(restPos, AT_POSITION);
-                result.setOrderNo(order.getOrderNo());
-
-                if (result.getOk())
-                {
-                    pathResults.add(result);
-                    order.setOrderStatus(OrderStatus.DELIVERED);
-                } else
-                    logger.warning(String.format("[order#%s] failed to find return path to '%s' from '%s' (%s)",
-                            result.getOrderNo(),
-                            "Appleton Tower",
-                            restName,
-                            restPos));
-
-                final String msg = String.format("[order#%s] flight path processed ", result.getOrderNo());
-                logger.info(msg + Map.of(
-                        "to", restName,
-                        "took", String.format("%.2fms", (System.nanoTime() - calcStartTime) / 1e6))
-                );
-            } catch (Exception e)
-            {
-                logger.warning(String.format("[order#%s] %s", order.getOrderNo(), e.getMessage()));
-            }
-        });
-
-        logger.info(String.format("[system] finished flight path calculations for %d orders.\n", ordersToDeliver.length));
+            logger.info(String.format("[system] finished flight path calculations for %d orders\n", toProcessCount));
+        }
 
         logger.info("[system] begin writing results...");
 
@@ -249,7 +265,7 @@ public class App
         }
 
         // [5] Program termination.
-        logger.info(String.format("[system] finished processing all %s orders (completed in %.2fs).",
+        logger.info(String.format("[system] finished processing %s orders (completed in %.2fs).",
                 orders.length,
                 (System.nanoTime() - startTime) / 1e9));
     }
@@ -265,33 +281,32 @@ public class App
     {
         // Validate received date.
         if (date == null || date.isEmpty())
-            throw new IllegalArgumentException("argument[0] 'date' cannot be null|empty");
+            throw new IllegalArgumentException("arg[s0] 'date' cannot be null|empty");
         else
         {
-            final DateFormat sdf = new SimpleDateFormat(DATE_FMT);
-            sdf.setLenient(false);
-
             try
             {
+                final DateFormat sdf = new SimpleDateFormat(DATE_FMT);
+                sdf.setLenient(false);
                 sdf.parse(date);
             } catch (ParseException e)
             {
-                throw new IllegalArgumentException(
-                        String.format("argument[0] 'date' must be of format '%s'; received: '%s'", DATE_FMT, date));
+                final String fmt = "args[0] 'date' must be of format '%s' and valid; received: '%s'";
+                throw new IllegalArgumentException(String.format(fmt, DATE_FMT, date));
             }
         }
 
         // TODO: revisit prior to submission.
         // Validate received API base.
         if (apiBase == null || apiBase.isEmpty())
-            throw new IllegalArgumentException("argument[1] 'apiBase' cannot be null|empty");
+            throw new IllegalArgumentException("args[1] 'apiBase' cannot be null|empty");
         else
         {
             final boolean isURL = apiBase.matches("https?://.*");
             final boolean isIPv4 = apiBase.matches("^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\\.|$)){4}$");
             if (!isURL && !isIPv4)
                 throw new IllegalArgumentException(
-                        String.format("argument[1] 'apiBase' must be of standard URL/IPv4 format; received: '%s' ", apiBase));
+                        String.format("args[1] 'apiBase' must be of standard URL/IPv4 format; received: '%s' ", apiBase));
         }
     }
 

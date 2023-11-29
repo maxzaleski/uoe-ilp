@@ -34,7 +34,7 @@ public class APIClient implements IAPIClient
             return objectMapper.readValue(new URL(url + "/isAlive"), Boolean.class);
         } catch (Exception e)
         {
-            throw new RuntimeException("failed to fetch api heartbeat: " + e.getMessage(), e);
+            throw new RuntimeException("failed to fetch heartbeat: " + e.getMessage(), e);
         }
     }
 

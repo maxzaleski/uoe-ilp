@@ -137,7 +137,8 @@ public class OrderValidator implements OrderValidation
             final DateTimeFormatter f = DateTimeFormatter.ofPattern("MM/yy");
             final YearMonth parsed = YearMonth.parse(cardInformation.getCreditCardExpiry(), f);
 
-            if (parsed.compareTo(YearMonth.now()) < 0)
+            // Check that the expiry date is in the future compared to `date`.
+            if (parsed.isBefore(YearMonth.from(date)))
                 return OrderValidationCode.EXPIRY_DATE_INVALID; // Date is of valid format but in the past.
         } catch (DateTimeParseException e)
         {
@@ -204,8 +205,8 @@ public class OrderValidator implements OrderValidation
         // [requirement] A restaurant has any of the pizzas on its menu.
         final Optional<Restaurant> maybeRestaurant = Arrays.stream(restaurants).
                 filter(restaurant -> Arrays.stream(restaurant.menu()).
-                        anyMatch(pizza -> pizza.name().equals(items[0].name()))
-                ).findFirst();
+                        anyMatch(pizza -> pizza.name().equals(items[0].name())))
+                .findFirst();
         if (maybeRestaurant.isEmpty())
             return OrderValidationCode.PIZZA_NOT_DEFINED;
 

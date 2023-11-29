@@ -70,8 +70,6 @@ public interface ISystemFileWriter
      */
     class SerialisableDroneMove
     {
-        @JsonProperty("orderNo")
-        final private String orderNo;
         @JsonProperty("fromLongitude")
         final double fromLongitude;
         @JsonProperty("fromLatitude")
@@ -82,6 +80,8 @@ public interface ISystemFileWriter
         final double toLatitude;
         @JsonProperty("angle")
         final double angle;
+        @JsonProperty("orderNo")
+        final private String orderNo;
 
         public SerialisableDroneMove(String orderNo, Direction previous, Direction current)
         {
