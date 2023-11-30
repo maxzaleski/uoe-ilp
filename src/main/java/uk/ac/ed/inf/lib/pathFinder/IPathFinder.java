@@ -90,7 +90,7 @@ public interface IPathFinder
             while (current != null)
             {
                 // → Per the spec, we omit the starting position as it is not required.
-                if (current.getDirection().angle() != 999.0) path.add(current.getDirection());
+                if (current.getPrevious() != null) path.add(current.getDirection());
                 current = current.getPrevious();
             }
 

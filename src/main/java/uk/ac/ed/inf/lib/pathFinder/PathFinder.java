@@ -33,7 +33,7 @@ public class PathFinder implements IPathFinder
         if (fromPos == null || toPos == null)
             throw new IllegalArgumentException("positions cannot be null");
         else if (fromPos.equals(toPos))
-            throw new IllegalArgumentException("no path required; positions are the same");
+            throw new IllegalArgumentException("positions cannot be equal");
 
         // [abstract]
         // This method finds the shortest path between the two positions using the A* algorithm.
@@ -103,11 +103,9 @@ public class PathFinder implements IPathFinder
             }
         } catch (Exception e)
         {
-            final String msg = String.format("unexpected error while calculating the shortest path from %s to %s: %s",
-                    fromPos,
-                    toPos,
-                    e.getMessage() == null ? "no message given" : e.getMessage());
-            throw new RuntimeException(msg, e);
+            final Map<String, LngLat> fields = Map.of("from", fromPos, "to", toPos);
+            final String msg = e.getMessage() == null ? "no message given" : e.getMessage();
+            throw new RuntimeException("unexpected error while calculating the shortest path: " + msg + fields, e);
         }
 
         return result;
@@ -138,13 +136,11 @@ public class PathFinder implements IPathFinder
      */
     private boolean isWithinBoundary(LngLat position)
     {
-        if (noFlyZones == null)
-            return true;
+        if (noFlyZones == null) return true;
 
         for (NamedRegion noFlyZone : noFlyZones)
         {
-            if (lngLatHandler.isInRegion(position, noFlyZone))
-                return false;
+            if (lngLatHandler.isInRegion(position, noFlyZone)) return false;
         }
         return true;
     }
