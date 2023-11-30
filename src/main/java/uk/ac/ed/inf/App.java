@@ -24,36 +24,7 @@ import java.util.*;
 import java.util.logging.Logger;
 
 /**
- * Entry point for PizzaDronz, a drone delivery system for the University of Edinburgh.
- *
- * <p>
- * <br>
- * This program consumes a RESTful API to retrieve dynamic data, notably orders placed for a given date,
- * and calculates the shortest path between Appleton Tower <> each restaurant from which an order has been placed.
- *
- * <p>
- * <br>
- * This program accepts the following arguments:
- * <ul>
- *   <li>[0]: the date for which to process orders (<i>yyyy-MM-dd</i>)</li>
- *   <li>[1]: the base URL of the RESTful API to consume</li>
- *   <li>[2]: a seed to be used for random number generation (ignored)</li>
- * </ul>
- *
- * <p>
- * This program outputs the following files under {@value SystemFileWriter#LOCATION}:
- * <ul>
- *  <li><i>deliveries-yyyy-MM-dd.json</i>: a JSON file containing the orders for the given date.</li>
- *  <li>
- *      <i>flightpath-yyyy-MM-dd.json</i> a JSON file containing the (flattened) moves constituting the drone's flight path
- *      for each order for the given date.
- *  </li>
- *  <li>
- *      <i>drone-yyyy-MM-dd.geojson</i>: a GeoJSON file containing a single (flattened) 'lineString' feature constituting
- *      the drone's flight path for each order for the given date.
- *      </li>
- *   </ul>
- * </p>
+ * Entry point for PizzaDronz, a drone delivery system by the School of Informatics at the University of Edinburgh.
  *
  * @version 1.0.0
  */
@@ -195,7 +166,7 @@ public class App
                         for (int i = 0; i < positions.length; i++)
                         {
                             final LngLat from = positions[i];
-                            final LngLat to = i == 0 ? positions[i + 1] : positions[i - 1];
+                            final LngLat to = positions[i == 0 ? 1 : 0];
 
                             try
                             {
