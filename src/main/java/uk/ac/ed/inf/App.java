@@ -1,6 +1,7 @@
 package uk.ac.ed.inf;
 
 import uk.ac.ed.inf.factories.DataObjectsFactory;
+import uk.ac.ed.inf.ilp.constant.OrderStatus;
 import uk.ac.ed.inf.ilp.constant.OrderValidationCode;
 import uk.ac.ed.inf.ilp.data.LngLat;
 import uk.ac.ed.inf.ilp.data.NamedRegion;
@@ -15,6 +16,7 @@ import uk.ac.ed.inf.lib.pathFinder.PathFinder;
 import uk.ac.ed.inf.lib.systemFileWriter.ISystemFileWriter;
 import uk.ac.ed.inf.lib.systemFileWriter.SystemFileWriter;
 
+import java.net.URL;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -85,7 +87,7 @@ public class App
             // [1.2] Validate received arguments.
             validateArgs(dateArg, urlArg);
 
-            final Map<String, String> logFields = Map.of("date", dateArg, "apiBase", urlArg);
+            final Map<String, String> logFields = Map.of("date", dateArg, "url", urlArg);
             logger.info("[system] starting PizzaDronz... " + logFields + "\n");
         } catch (IllegalArgumentException e)
         {
@@ -115,9 +117,14 @@ public class App
 
             // [2.2] Fetch restaurants.
             restaurants = apiClient.getRestaurants();
-            //       Optimise later operations by mapping menu items to their respective restaurant instance;
-            //       this is done to avoid having to perform a linear search for each order when calculating the flight
-            //       path.
+            if (restaurants.length == 0)
+            {
+                logger.severe("[system] no restaurants found, exiting...");
+                System.exit(2);
+            }
+            // Optimise later operations by mapping menu items to their respective restaurant instance;
+            // this is done to avoid having to perform a linear search for each order when calculating the flight
+            // path.
             Arrays.stream(restaurants).
                     forEach(restaurant ->
                             Arrays.stream(restaurant.menu()).
@@ -178,7 +185,7 @@ public class App
 
                         // (i) We have validated that each item in the order is from the same restaurant.
                         //     In [2.2], we have mapped each menu item to its restaurant instance, as to retrieve its
-                        //     coordinates in O(1) rather than O(n) time.
+                        //     coordinates in O(1) time.
                         final Restaurant restaurant = restaurantMap.get(order.getPizzasInOrder()[0].name());
                         final String orderNo = order.getOrderNo();
 
@@ -187,8 +194,8 @@ public class App
                         // [3.1] Calculate the shortest path between Appleton Tower <> restaurant.
                         for (int i = 0; i < positions.length; i++)
                         {
-                            final LngLat from = i == 0 ? positions[i] : positions[i - 1];
-                            final LngLat to = i == 0 ? positions[i + 1] : positions[i];
+                            final LngLat from = positions[i];
+                            final LngLat to = i == 0 ? positions[i + 1] : positions[i - 1];
 
                             try
                             {
@@ -210,6 +217,8 @@ public class App
                             {
                                 logger.warning(String.format("[order#%s] %s", orderNo, e.getMessage()));
                             }
+
+                            if (i == 1) order.setOrderStatus(OrderStatus.DELIVERED);
                         }
 
                         // [3.3] Log calculation metrics.
@@ -260,40 +269,45 @@ public class App
     /**
      * Validates the program arguments.
      *
-     * @param date    the string to validate (expects yyyy-MM-dd).
-     * @param apiBase the string to validate (expects valid URL or IPv4).
+     * @param date the string to validate (expects valid date of format yyyy-MM-dd).
+     * @param url  the string to validate (expects valid URL).
      * @throws IllegalArgumentException if any of the arguments are invalid.
      */
-    public static void validateArgs(String date, String apiBase) throws IllegalArgumentException
+    public static void validateArgs(String date, String url) throws IllegalArgumentException
     {
         // Validate received date.
         if (date == null || date.isEmpty())
-            throw new IllegalArgumentException("arg[s0] 'date' cannot be null|empty");
+            throw new IllegalArgumentException("args[0] 'date' cannot be null|empty");
         else
         {
             try
             {
+                // SimpleDateFormat will accept yyyy-mm-d, which is unsatisfactory.
+                if (date.length() != DATE_FMT.length()) throw new ParseException("invalid length", 0);
+
                 final DateFormat sdf = new SimpleDateFormat(DATE_FMT);
                 sdf.setLenient(false);
                 sdf.parse(date);
             } catch (ParseException e)
             {
-                final String fmt = "args[0] 'date' must be of format '%s' and valid; received: '%s'";
+                final String fmt = "args[0] 'date' must be a valid date of format '%s'; received: '%s'";
                 throw new IllegalArgumentException(String.format(fmt, DATE_FMT, date));
             }
         }
 
-        // TODO: revisit prior to submission.
-        // Validate received API base.
-        if (apiBase == null || apiBase.isEmpty())
-            throw new IllegalArgumentException("args[1] 'apiBase' cannot be null|empty");
+        // Validate received URL.
+        if (url == null || url.isEmpty())
+            throw new IllegalArgumentException("args[1] 'url' cannot be null|empty");
         else
         {
-            final boolean isURL = apiBase.matches("https?://.*");
-            final boolean isIPv4 = apiBase.matches("^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\\.|$)){4}$");
-            if (!isURL && !isIPv4)
+            try
+            {
+                new URL(url);
+            } catch (Exception e)
+            {
                 throw new IllegalArgumentException(
-                        String.format("args[1] 'apiBase' must be of standard URL/IPv4 format; received: '%s' ", apiBase));
+                        String.format("args[1] 'url' must be a valid URL; received: '%s' ", url));
+            }
         }
     }
 

@@ -359,14 +359,14 @@ public class OrderValidatorTest extends TestCase
 
     private Order buildStage2Order()
     {
+        final Order order = buildStage1Order();
+
         final CreditCardInformation cardInformation = new CreditCardInformation();
         cardInformation.setCvv("123");
         cardInformation.setCreditCardNumber("1234567890123456");
-        cardInformation.setCreditCardExpiry("12/28");
+        cardInformation.setCreditCardExpiry("12/24");
 
-        final Order order = buildStage1Order();
         order.setCreditCardInformation(cardInformation);
-
         return order;
     }
 
@@ -375,7 +375,7 @@ public class OrderValidatorTest extends TestCase
         return new Restaurant(
                 "Restaurant",
                 null,
-                new DayOfWeek[]{LocalDate.now().getDayOfWeek()},
+                new DayOfWeek[]{DayOfWeek.FRIDAY},
                 items
         );
     }

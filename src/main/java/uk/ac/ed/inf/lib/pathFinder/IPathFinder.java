@@ -89,8 +89,7 @@ public interface IPathFinder
             path.add(end);
             while (current != null)
             {
-                // → Per the spec, we omit the starting position as it is not required.
-                if (current.getPrevious() != null) path.add(current.getDirection());
+                path.add(current.getDirection());
                 current = current.getPrevious();
             }
 

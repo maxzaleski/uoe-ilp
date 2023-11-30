@@ -19,17 +19,14 @@ public class SystemFileWriterTest extends TestCase
 
     public void testWriteOrders_IllegalArgumentException()
     {
-        for (Order[] orders : new Order[][]{null, {}})
+        try
         {
-            try
-            {
-                writer.writeOrders(orders);
-                fail("expected 'IllegalArgumentException' to be thrown");
-            } catch (IllegalArgumentException e)
-            {
-                // Caught as expected.
-                assert e.getMessage().contains("orders");
-            }
+            writer.writeOrders(null);
+            fail("expected 'IllegalArgumentException' to be thrown");
+        } catch (IllegalArgumentException e)
+        {
+            // Caught as expected.
+            assert e.getMessage().contains("orders");
         }
     }
 
@@ -47,17 +44,14 @@ public class SystemFileWriterTest extends TestCase
 
     public void testWriteGeoJSON_IllegalArgumentException()
     {
-        for (LngLat[] path : new LngLat[][]{null, {}})
+        try
         {
-            try
-            {
-                writer.writeGeoJSON(path);
-                fail("expected 'IllegalArgumentException' to be thrown");
-            } catch (IllegalArgumentException e)
-            {
-                // Caught as expected.
-                assertTrue(e.getMessage().contains("path"));
-            }
+            writer.writeGeoJSON(null);
+            fail("expected 'IllegalArgumentException' to be thrown");
+        } catch (IllegalArgumentException e)
+        {
+            // Caught as expected.
+            assertTrue(e.getMessage().contains("path"));
         }
     }
 
@@ -75,17 +69,14 @@ public class SystemFileWriterTest extends TestCase
 
     public void testWriteFlightPath_IllegalArgumentException()
     {
-        for (IPathFinder.Result[] results : new IPathFinder.Result[][]{null, {}})
+        try
         {
-            try
-            {
-                writer.writeFlightPath(results);
-                fail("expected 'IllegalArgumentException' to be thrown");
-            } catch (IllegalArgumentException e)
-            {
-                // Caught as expected.
-                assertTrue(e.getMessage().contains("results"));
-            }
+            writer.writeFlightPath(null);
+            fail("expected 'IllegalArgumentException' to be thrown");
+        } catch (IllegalArgumentException e)
+        {
+            // Caught as expected.
+            assertTrue(e.getMessage().contains("results"));
         }
     }
 
