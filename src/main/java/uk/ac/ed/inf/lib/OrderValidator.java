@@ -14,7 +14,7 @@ import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Arrays;
-import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Represents the order validator.
@@ -203,15 +203,21 @@ public class OrderValidator implements OrderValidation
             return OrderValidationCode.MAX_PIZZA_COUNT_EXCEEDED;
 
         // [requirement] A restaurant has any of the pizzas on its menu.
-        final Optional<Restaurant> maybeRestaurant = Arrays.stream(restaurants).
-                filter(restaurant -> Arrays.stream(restaurant.menu()).
-                        anyMatch(pizza -> pizza.name().equals(items[0].name())))
-                .findFirst();
-        if (maybeRestaurant.isEmpty())
-            return OrderValidationCode.PIZZA_NOT_DEFINED;
+        AtomicReference<Restaurant> lastSeenRestaurant = new AtomicReference<>();
+        for (Pizza item : items)
+        {
+            final String name = item.name();
+            if (Arrays.stream(restaurants).noneMatch(restaurant ->
+            {
+                lastSeenRestaurant.set(restaurant);
+                return Arrays.stream(restaurant.menu()).
+                        anyMatch(pizza -> pizza.name().equals(name));
+            }))
+                return OrderValidationCode.PIZZA_NOT_DEFINED;
+        }
 
         // [requirement] The restaurant is open.
-        final Restaurant restaurant = maybeRestaurant.get();
+        final Restaurant restaurant = lastSeenRestaurant.get();
         if (Arrays.stream(restaurant.openingDays()).noneMatch(day -> day == date.getDayOfWeek()))
             return OrderValidationCode.RESTAURANT_CLOSED;
 
