@@ -230,16 +230,20 @@ public class OrderValidatorTest extends TestCase
      */
     public void testRestaurant_SingleRestaurant()
     {
-        final Pizza pizza = new Pizza("foobar", 1);
-        final Restaurant restaurant = buildRestaurant(new Pizza[]{pizza});
+        Pizza pizza = new Pizza("foobar", 1);
+        final Restaurant restaurant1 = buildRestaurant(new Pizza[]{pizza});
+
+        pizza = new Pizza("", 1);
+        final Restaurant restaurant2 = buildRestaurant(new Pizza[]{pizza});
 
         final Order order = buildStage2Order();
         order.setPizzasInOrder(new Pizza[]{
                 pizza,
+                new Pizza("foobar", 1), // From a secondary restaurant.
                 new Pizza("", 1), // From a secondary restaurant.
         });
 
-        validator.validateOrder(order, new Restaurant[]{restaurant});
+        validator.validateOrder(order, new Restaurant[]{restaurant1, restaurant2});
 
         assertEquals(OrderValidationCode.PIZZA_FROM_MULTIPLE_RESTAURANTS, order.getOrderValidationCode());
         assertEquals(OrderStatus.INVALID, order.getOrderStatus());
