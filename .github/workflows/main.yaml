@@ -2,7 +2,7 @@ name: CI/CD
 
 on:
   push:
-    branches: [master, qa, final-changes]
+    branches: [master, qa]
 
 jobs:
   build_and_test:
