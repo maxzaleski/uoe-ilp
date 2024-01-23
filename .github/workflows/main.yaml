@@ -5,20 +5,7 @@ on:
     branches: [master, qa, final-changes]
 
 jobs:
-#  upload_artifact:
-#    runs-on: ubuntu-latest
-#
-#    steps:
-#      - uses: actions/checkout@v2
-#
-#      - name: Upload IlpDataObjects.jar
-#        uses: actions/upload-artifact@v2
-#        with:
-#          name: IlpDataObjects
-#          path: ./artifacts/IlpDataObjects.jar
-
   build_and_test:
-    needs: upload_artifact
     runs-on: ubuntu-latest
 
     steps:
@@ -27,12 +14,6 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 18
-
-#      - name: Download IlpDataObjects.jar
-#        uses: actions/download-artifact@v2
-#        with:
-#          name: IlpDataObjects
-#          path: ./artifacts/
 
       - name: Cache the Maven packages to speed up build
         uses: actions/cache@v1
