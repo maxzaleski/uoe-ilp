@@ -5,7 +5,20 @@ on:
     branches: [master, qa, final-changes]
 
 jobs:
+  upload_artifact:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Upload IlpDataObjects.jar
+        uses: actions/upload-artifact@v2
+        with:
+          name: IlpDataObjects
+          path: ./artifacts/IlpDataObjects.jar
+
   build_and_test:
+    needs: upload_artifact
     runs-on: ubuntu-latest
 
     steps:
@@ -19,7 +32,7 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: IlpDataObjects
-          path: ${ { github.workspace } }/artifacts/IlpDataObjects.jar
+          path: ./artifacts/
 
       - name: Cache the Maven packages to speed up build
         uses: actions/cache@v1
