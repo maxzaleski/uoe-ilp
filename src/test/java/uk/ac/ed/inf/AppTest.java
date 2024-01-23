@@ -22,13 +22,18 @@ import static java.time.DayOfWeek.*;
  */
 public class AppTest extends TestCase
 {
+    final String PROD_URL = System.getenv("PROD_URL");
+
     public void testApp_main()
     {
-        final String PROD_URL = System.getenv("PROD_URL");
         if (PROD_URL != null && !PROD_URL.isEmpty())
         {
+            final long start = System.nanoTime();
             App.main(new String[]{"2023-12-01", PROD_URL});
             // Calls `System.exit(1)` if an exception is caught.
+
+            // Has to complete in less than 60 seconds.
+            assert System.nanoTime() - start < 60 * 1e9;
         }
     }
 
