@@ -3,6 +3,9 @@ name: CI
 on:
   push:
     branches: [master, qa]
+    paths:
+      - 'src/**'
+      - 'artifacts/**'
 
 jobs:
   build_and_test:
