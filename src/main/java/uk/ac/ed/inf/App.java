@@ -10,6 +10,7 @@ import uk.ac.ed.inf.ilp.data.Restaurant;
 import uk.ac.ed.inf.ilp.interfaces.OrderValidation;
 import uk.ac.ed.inf.lib.OrderValidator;
 import uk.ac.ed.inf.lib.api.APIClient;
+import uk.ac.ed.inf.lib.api.IAPIClient;
 import uk.ac.ed.inf.lib.pathFinder.INode;
 import uk.ac.ed.inf.lib.pathFinder.IPathFinder;
 import uk.ac.ed.inf.lib.pathFinder.PathFinder;
@@ -66,33 +67,67 @@ public class App
             System.exit(1);
         }
 
-        final APIClient apiClient = new APIClient(urlArg, new DataObjectsFactory());
-        final ISystemFileWriter fileWriter = new SystemFileWriter(dateArg, logger);
+        // [2] Main loop execution.
+        try
+        {
+            final ISystemFileWriter fileWriter = new SystemFileWriter(dateArg, logger);
+            final IAPIClient apiClient = new APIClient(urlArg, new DataObjectsFactory());
+            final IPathFinder pathFinder = new PathFinder();
 
-        Restaurant[] restaurants = new Restaurant[0];
+            final int processedOrdersCount = execute(logger, dateArg, apiClient, fileWriter, pathFinder);
+
+            // [3] Program termination.
+            logger.info(String.format("[system] finished processing %s orders (completed in %.2fs).",
+                    processedOrdersCount,
+                    (System.nanoTime() - startTime) / 1e9));
+        } catch (NoDataAccessException | NoRestaurantsException e)
+        {
+            System.exit(2);
+        } catch (Exception e)
+        {
+            e.printStackTrace();
+            System.exit(1);
+        }
+    }
+
+    /**
+     * Executes the program.
+     *
+     * @param logger     the logger to use.
+     * @param date       the date to use.
+     * @param apiClient  the API client to use.
+     * @param fileWriter the file writer to use.
+     * @return the number of orders processed.
+     */
+    public static int execute(Logger logger,
+                              String date,
+                              IAPIClient apiClient,
+                              ISystemFileWriter fileWriter,
+                              IPathFinder pathFinder)
+            throws Exception
+    {
+        Restaurant[] restaurants;
         Map<String, Restaurant> restaurantMap = new HashMap<>();
-        Order[] orders = new Order[0];
-        NamedRegion[] noFlyZones = new NamedRegion[0];
+        Order[] orders;
+        NamedRegion[] noFlyZones;
+
+
+        logger.info("[system] begin data fetching...");
+
+        // [1] Check for server heartbeat.
+        if (!apiClient.isAlive())
+        {
+            logger.severe("[system] server is not accepting requests, exiting...");
+            throw new NoDataAccessException();
+        }
 
         // [2] Data fetching and validation.
         try
         {
-            logger.info("[system] begin data fetching...");
-
-            // [2.1] Check for server heartbeat.
-            if (!apiClient.isAlive())
-            {
-                logger.severe("[system] server is not accepting requests, exiting...");
-                System.exit(2);
-            }
-
             // [2.2] Fetch restaurants.
             restaurants = apiClient.getRestaurants();
-            if (restaurants.length == 0)
-            {
-                logger.severe("[system] no restaurants found, exiting...");
-                System.exit(2);
-            }
+            if (restaurants.length == 0) throw new NoRestaurantsException();
+
             // Optimise later operations by mapping menu items to their respective restaurant instance;
             // this is done to avoid having to perform a linear search for each order when calculating the flight
             // path.
@@ -102,7 +137,7 @@ public class App
                                     forEach(pizza -> restaurantMap.put(pizza.name(), restaurant)));
 
             // [2.3] Fetch orders for the specified date.
-            orders = apiClient.getOrdersByISODate(dateArg);
+            orders = apiClient.getOrdersByISODate(date);
 
             // [2.4] Fetch no-fly zones.
             noFlyZones = apiClient.getNoFlyZones();
@@ -118,14 +153,18 @@ public class App
                     "restaurants", restaurants.length,
                     "noFlyZones", noFlyZones.length);
             logger.info("[system] finished data fetching " + logFields + "\n");
+        } catch (NoRestaurantsException e)
+        {
+            logger.severe("[system] no restaurants found, exiting...");
+            throw e;
         } catch (Exception e)
         {
             logger.severe("[system] failed to fetch or process required server data:");
-            handleException(e);
+            throw new DataAccessException(e);
         }
 
-        final IPathFinder pathFinder = new PathFinder(noFlyZones);
         final List<IPathFinder.Result> pathResults = new ArrayList<>();
+        pathFinder.setNoFlyZones(noFlyZones);
 
         // [3] Process orders if any were received.
         if (orders.length > 0)
@@ -133,7 +172,7 @@ public class App
             logger.info("[system] begin flight path calculations...");
 
             final Restaurant[] finalRestaurants = restaurants; // (for use in lambda)
-            final OrderValidation validator = new OrderValidator(dateArg);
+            final OrderValidation validator = new OrderValidator(date);
 
             Arrays.stream(orders)
                     // [3.1] Filter out invalid orders.
@@ -228,13 +267,10 @@ public class App
         } catch (Exception e)
         {
             logger.severe("[system] failed to create result files...");
-            handleException(e);
+            throw new OutputFileException(e);
         }
 
-        // [5] Program termination.
-        logger.info(String.format("[system] finished processing %s orders (completed in %.2fs).",
-                orders.length,
-                (System.nanoTime() - startTime) / 1e9));
+        return orders.length;
     }
 
     /**
@@ -282,15 +318,35 @@ public class App
         }
     }
 
-    /**
-     * Handles an exception by printing its stack trace and exiting the program with a non-zero exit code.
-     *
-     * @param e the exception to handle.
-     */
-    private static void handleException(Exception e)
+    static class NoDataAccessException extends Exception
     {
-        //noinspection CallToPrintStackTrace
-        e.printStackTrace(); // (already prints to System.err)
-        System.exit(1);
+        public NoDataAccessException()
+        {
+            super();
+        }
+    }
+
+    static class NoRestaurantsException extends Exception
+    {
+        public NoRestaurantsException()
+        {
+            super();
+        }
+    }
+
+    static class DataAccessException extends Exception
+    {
+        public DataAccessException(Exception e)
+        {
+            super(e);
+        }
+    }
+
+    static class OutputFileException extends Exception
+    {
+        public OutputFileException(Exception e)
+        {
+            super(e);
+        }
     }
 }

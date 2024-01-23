@@ -1,8 +1,8 @@
-name: CI/CD
+name: CI
 
 on:
   push:
-    branches: [master, qa, final-changes]
+    branches: [master, qa]
 
 jobs:
   build_and_test:

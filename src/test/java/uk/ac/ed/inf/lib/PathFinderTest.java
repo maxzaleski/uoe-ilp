@@ -7,7 +7,7 @@ import uk.ac.ed.inf.lib.pathFinder.PathFinder;
 
 public class PathFinderTest extends TestCase
 {
-    private static final IPathFinder pathFinder = new PathFinder(null);
+    private static final IPathFinder pathFinder = new PathFinder();
 
     public void testFindPath()
     {

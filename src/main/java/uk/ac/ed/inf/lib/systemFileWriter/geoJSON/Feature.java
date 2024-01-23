@@ -12,11 +12,11 @@ import java.util.HashMap;
 public class Feature<G>
 {
     @JsonProperty("properties")
-    protected final HashMap<String, Object> properties;
+    protected HashMap<String, Object> properties;
     @JsonProperty("geometry")
-    protected final Geometry<G> geometry;
+    protected Geometry<G> geometry;
     @JsonProperty("type")
-    private final String type = "Feature";
+    private String type = "Feature";
 
     /**
      * Constructs a GeoJSON feature.
@@ -29,6 +29,31 @@ public class Feature<G>
         this.properties = new HashMap<>();
     }
 
+    public Feature()
+    {
+        this(null);
+    }
+
+    public HashMap<String, Object> getProperties()
+    {
+        return properties;
+    }
+
+    public Geometry<G> getGeometry()
+    {
+        return geometry;
+    }
+
+    public String getType()
+    {
+        return type;
+    }
+
+    public void setProperties(HashMap<String, Object> properties)
+    {
+        this.properties = properties;
+    }
+
     /**
      * Represents a generic GeoJSON geometry.
      *
@@ -37,14 +62,39 @@ public class Feature<G>
     public static class Geometry<T>
     {
         @JsonProperty("coordinates")
-        protected final T coordinates;
+        protected T coordinates;
         @JsonProperty("type")
-        private final String type;
+        private String type;
 
         public Geometry(String type, T coordinates)
         {
             this.type = type;
             this.coordinates = coordinates;
+        }
+
+        public Geometry()
+        {
+            this(null, null);
+        }
+
+        public T getCoordinates()
+        {
+            return coordinates;
+        }
+
+        public String getType()
+        {
+            return type;
+        }
+
+        public void setCoordinates(T coordinates)
+        {
+            this.coordinates = coordinates;
+        }
+
+        public void setType(String type)
+        {
+            this.type = type;
         }
     }
 }

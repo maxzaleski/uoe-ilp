@@ -18,13 +18,16 @@ public class PathFinder implements IPathFinder
      */
     final private LngLatHandler lngLatHandler;
 
-    final private NamedRegion[] noFlyZones;
+    private NamedRegion[] noFlyZones;
 
-    public PathFinder(NamedRegion[] noFlyZones)
+    public PathFinder()
     {
         this.startTime = System.nanoTime();
         this.lngLatHandler = new LngLatHandler();
+    }
 
+    public void setNoFlyZones(NamedRegion[] noFlyZones)
+    {
         this.noFlyZones = noFlyZones;
     }
 
