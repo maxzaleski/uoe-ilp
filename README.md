@@ -22,6 +22,11 @@ This program outputs 3 files under the `{projectRoot}/resultfiles/` directory:
 
 ## Changelog
 
+### v1.1.0 (2024-01-23)
+
+- Added tests
+- Added CI workflow
+
 ### v1.0.0 (2023-12-01)
 
 - Initial release
