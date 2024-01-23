@@ -39,6 +39,21 @@ public class PathFinderTest extends TestCase
         }
     }
 
+    public void testFindPath_performance()
+    {
+        final long start = System.nanoTime();
+
+        // Location of 'World of Pizza', which is one of the further points from the base.
+        final LngLat startPos = new LngLat(-3.1869, 55.9445);
+        final LngLat endPos = new LngLat(-3.179798972064253, 55.939884084483);
+
+        IPathFinder.Result result = pathFinder.findRoute(startPos, endPos);
+        assert result.getOk();
+
+        // Ensure that the algorithm completes within 500 ms.
+        assert System.nanoTime() - start < 500000000L;
+    }
+
     public void testFindPath_IllegalArgumentException_Null()
     {
         final LngLat[][] cases = new LngLat[][]{
