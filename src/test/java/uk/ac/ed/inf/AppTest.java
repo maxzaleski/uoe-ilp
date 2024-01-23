@@ -1,38 +1,69 @@
 package uk.ac.ed.inf;
 
-import junit.framework.Test;
 import junit.framework.TestCase;
-import junit.framework.TestSuite;
 
 /**
  * Unit test for simple App.
  */
-public class AppTest 
-    extends TestCase
+public class AppTest extends TestCase
 {
-    /**
-     * Create the test case
-     *
-     * @param testName name of the test case
-     */
-    public AppTest( String testName )
+    public void testApp_validateArgs_IllegalArgument_Date()
     {
-        super( testName );
+        for (String date : new String[]{null, "", "0000-00-00", "2023-12-1", "2023-9-1", "01-12-2023"})
+        {
+            try
+            {
+                App.validateArgs(date, "");
+                fail("expected 'IllegalArgumentException' to be thrown");
+            } catch (Exception e)
+            {
+                assert e.getMessage().contains("date");
+            }
+        }
     }
 
-    /**
-     * @return the suite of tests being tested
-     */
-    public static Test suite()
+    public void testApp_validateArgs_Date()
     {
-        return new TestSuite( AppTest.class );
+        try
+        {
+            App.validateArgs("2023-12-01", "https://test.test");
+        } catch (IllegalArgumentException e)
+        {
+            fail("expected 'IllegalArgumentException' to be thrown");
+        }
     }
 
-    /**
-     * Rigourous Test :-)
-     */
-    public void testApp()
+    public void testApp_validateArgs_IllegalArgument_Url()
     {
-        assertTrue( true );
+        for (String url : new String[]{null, "", "www.example.com/file[/].html", "127.0.0.1"})
+        {
+            try
+            {
+                App.validateArgs("2023-12-01", url);
+                fail("expected 'IllegalArgumentException' to be thrown");
+            } catch (Exception e)
+            {
+                assert e.getMessage().contains("url");
+            }
+        }
+    }
+
+    public void testApp_validateArgs_Url()
+    {
+        for (String url : new String[]{
+                "http://ilp-rest.azurewebsites.net",
+                "https://ilp-rest.azurewebsites.net",
+                "http://127.0.0.0",
+                "https://127.0.0.0",
+        })
+        {
+            try
+            {
+                App.validateArgs("2023-12-01", url);
+            } catch (Exception e)
+            {
+                fail("didn't expect 'IllegalArgumentException' to be thrown");
+            }
+        }
     }
 }

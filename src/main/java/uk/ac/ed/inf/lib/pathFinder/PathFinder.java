@@ -18,20 +18,23 @@ public class PathFinder implements IPathFinder
      */
     final private LngLatHandler lngLatHandler;
 
-    final private NamedRegion boundary;
     final private NamedRegion[] noFlyZones;
 
-    public PathFinder(NamedRegion boundary, NamedRegion[] noFlyZones)
+    public PathFinder(NamedRegion[] noFlyZones)
     {
         this.startTime = System.nanoTime();
         this.lngLatHandler = new LngLatHandler();
 
-        this.boundary = boundary;
         this.noFlyZones = noFlyZones;
     }
 
     public Result findRoute(LngLat fromPos, LngLat toPos)
     {
+        if (fromPos == null || toPos == null)
+            throw new IllegalArgumentException("positions cannot be null");
+        else if (fromPos.equals(toPos))
+            throw new IllegalArgumentException("positions cannot be equal");
+
         // [abstract]
         // This method finds the shortest path between the two positions using the A* algorithm.
         //
@@ -45,7 +48,6 @@ public class PathFinder implements IPathFinder
         //       using pre-defined ones.
 
         final IPathFinder.Result result = new Result();
-        result.getRoute().add(new INode.Direction(fromPos, getTicksSinceStart()));
 
         // A priority queue which sorts nodes by their estimated score (fScore).
         final Queue<INode> openSet = new PriorityQueue<>();
@@ -101,11 +103,9 @@ public class PathFinder implements IPathFinder
             }
         } catch (Exception e)
         {
-            final String msg = String.format("unexpected error while calculating the shortest path from %s to %s: %s",
-                    fromPos.toString(),
-                    toPos.toString(),
-                    e.getMessage() == null ? "no message given" : e.getMessage());
-            throw new RuntimeException(msg, e);
+            final Map<String, LngLat> fields = Map.of("from", fromPos, "to", toPos);
+            final String msg = e.getMessage() == null ? "no message given" : e.getMessage();
+            throw new RuntimeException("unexpected error while calculating the shortest path: " + msg + fields, e);
         }
 
         return result;
@@ -122,7 +122,7 @@ public class PathFinder implements IPathFinder
         {
             final double angle = i * LngLatHandler.ANGLE_MULTIPLE;
             final LngLat nextPosition = lngLatHandler.nextPosition(position, angle);
-            if (!isWithinBoundary(nextPosition))
+            if (isWithinBoundary(nextPosition))
                 neighbours.add(new INode.Direction(nextPosition, angle, getTicksSinceStart()));
         }
         return neighbours;
@@ -136,12 +136,13 @@ public class PathFinder implements IPathFinder
      */
     private boolean isWithinBoundary(LngLat position)
     {
+        if (noFlyZones == null) return true;
+
         for (NamedRegion noFlyZone : noFlyZones)
         {
-            if (lngLatHandler.isInRegion(position, noFlyZone))
-                return true;
+            if (lngLatHandler.isInRegion(position, noFlyZone)) return false;
         }
-        return false;
+        return true;
     }
 
     /**

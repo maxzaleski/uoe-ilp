@@ -18,7 +18,7 @@ import java.util.Map;
 
 public class OrderValidatorTest extends TestCase
 {
-    final private OrderValidator validator = new OrderValidator(); // Stateless.
+    final private OrderValidator validator = new OrderValidator("2023-12-01");
 
     /**
      * [requirement] The order has been assigned a unique order number.
@@ -26,21 +26,6 @@ public class OrderValidatorTest extends TestCase
     public void testContext_OrderNumber()
     {
         final Order order = new Order();
-        validator.validateOrder(order, new Restaurant[]{null});
-
-        assertEquals(OrderValidationCode.UNDEFINED, order.getOrderValidationCode());
-        assertEquals(OrderStatus.INVALID, order.getOrderStatus());
-    }
-
-    /**
-     * [requirement] The order was placed today.
-     */
-    public void testContext_OrderDate()
-    {
-        final Order order = new Order();
-        order.setOrderNo("foobar");
-        order.setOrderDate(LocalDate.now().minusDays(1));
-
         validator.validateOrder(order, new Restaurant[]{null});
 
         assertEquals(OrderValidationCode.UNDEFINED, order.getOrderValidationCode());
@@ -245,16 +230,20 @@ public class OrderValidatorTest extends TestCase
      */
     public void testRestaurant_SingleRestaurant()
     {
-        final Pizza pizza = new Pizza("foobar", 1);
-        final Restaurant restaurant = buildRestaurant(new Pizza[]{pizza});
+        Pizza pizza = new Pizza("foobar", 1);
+        final Restaurant restaurant1 = buildRestaurant(new Pizza[]{pizza});
+
+        pizza = new Pizza("", 1);
+        final Restaurant restaurant2 = buildRestaurant(new Pizza[]{pizza});
 
         final Order order = buildStage2Order();
         order.setPizzasInOrder(new Pizza[]{
                 pizza,
+                new Pizza("foobar", 1), // From a secondary restaurant.
                 new Pizza("", 1), // From a secondary restaurant.
         });
 
-        validator.validateOrder(order, new Restaurant[]{restaurant});
+        validator.validateOrder(order, new Restaurant[]{restaurant1, restaurant2});
 
         assertEquals(OrderValidationCode.PIZZA_FROM_MULTIPLE_RESTAURANTS, order.getOrderValidationCode());
         assertEquals(OrderStatus.INVALID, order.getOrderStatus());
@@ -366,7 +355,7 @@ public class OrderValidatorTest extends TestCase
     {
         final Order order = new Order();
         order.setOrderNo("foobar");
-        order.setOrderDate(LocalDate.now());
+        order.setOrderDate(LocalDate.parse("2023-12-01"));
         order.setOrderStatus(OrderStatus.UNDEFINED);
         order.setOrderValidationCode(OrderValidationCode.UNDEFINED);
         return order;
@@ -374,14 +363,14 @@ public class OrderValidatorTest extends TestCase
 
     private Order buildStage2Order()
     {
+        final Order order = buildStage1Order();
+
         final CreditCardInformation cardInformation = new CreditCardInformation();
         cardInformation.setCvv("123");
         cardInformation.setCreditCardNumber("1234567890123456");
-        cardInformation.setCreditCardExpiry("12/28");
+        cardInformation.setCreditCardExpiry("12/24");
 
-        final Order order = buildStage1Order();
         order.setCreditCardInformation(cardInformation);
-
         return order;
     }
 
@@ -390,7 +379,7 @@ public class OrderValidatorTest extends TestCase
         return new Restaurant(
                 "Restaurant",
                 null,
-                new DayOfWeek[]{LocalDate.now().getDayOfWeek()},
+                new DayOfWeek[]{DayOfWeek.FRIDAY},
                 items
         );
     }

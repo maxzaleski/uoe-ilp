@@ -14,13 +14,25 @@ import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Arrays;
-import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Represents the order validator.
  */
 public class OrderValidator implements OrderValidation
 {
+    final private LocalDate date;
+
+    /**
+     * Constructs an order validator.
+     *
+     * @param date the date of the order.
+     */
+    public OrderValidator(String date)
+    {
+        this.date = LocalDate.parse(date);
+    }
+
     /**
      * Validate an order and deliver a validated version where the `OrderStatus` and `OrderValidationCode` are set
      * accordingly.
@@ -85,6 +97,10 @@ public class OrderValidator implements OrderValidation
         if (order.getOrderNo().isEmpty())
             return false;
 
+        // [requirement] The order was placed today.
+        if (!order.getOrderDate().equals(date))
+            return false;
+
         // [requirement] The order has yet to be handled by the system.
         return order.getOrderStatus() == OrderStatus.UNDEFINED &&
                 order.getOrderValidationCode() == OrderValidationCode.UNDEFINED;
@@ -121,7 +137,8 @@ public class OrderValidator implements OrderValidation
             final DateTimeFormatter f = DateTimeFormatter.ofPattern("MM/yy");
             final YearMonth parsed = YearMonth.parse(cardInformation.getCreditCardExpiry(), f);
 
-            if (parsed.compareTo(YearMonth.now()) < 0)
+            // Check that the expiry date is in the future compared to `date`.
+            if (parsed.isBefore(YearMonth.from(date)))
                 return OrderValidationCode.EXPIRY_DATE_INVALID; // Date is of valid format but in the past.
         } catch (DateTimeParseException e)
         {
@@ -186,16 +203,22 @@ public class OrderValidator implements OrderValidation
             return OrderValidationCode.MAX_PIZZA_COUNT_EXCEEDED;
 
         // [requirement] A restaurant has any of the pizzas on its menu.
-        final Optional<Restaurant> maybeRestaurant = Arrays.stream(restaurants).
-                filter(restaurant -> Arrays.stream(restaurant.menu()).
-                        anyMatch(pizza -> pizza.name().equals(items[0].name()))
-                ).findFirst();
-        if (maybeRestaurant.isEmpty())
-            return OrderValidationCode.PIZZA_NOT_DEFINED;
+        AtomicReference<Restaurant> lastSeenRestaurant = new AtomicReference<>();
+        for (Pizza item : items)
+        {
+            final String name = item.name();
+            if (Arrays.stream(restaurants).noneMatch(restaurant ->
+            {
+                lastSeenRestaurant.set(restaurant);
+                return Arrays.stream(restaurant.menu()).
+                        anyMatch(pizza -> pizza.name().equals(name));
+            }))
+                return OrderValidationCode.PIZZA_NOT_DEFINED;
+        }
 
         // [requirement] The restaurant is open.
-        final Restaurant restaurant = maybeRestaurant.get();
-        if (Arrays.stream(restaurant.openingDays()).noneMatch(day -> day == LocalDate.now().getDayOfWeek()))
+        final Restaurant restaurant = lastSeenRestaurant.get();
+        if (Arrays.stream(restaurant.openingDays()).noneMatch(day -> day == date.getDayOfWeek()))
             return OrderValidationCode.RESTAURANT_CLOSED;
 
         // [requirement] All pizzas in the order are from the same restaurant.

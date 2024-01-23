@@ -5,47 +5,46 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.HashMap;
 
 /**
- * Represents an implementation of a GeoJSON feature.
+ * Represents a generic GeoJSON feature.
  *
- * @param <T> the type of geometry contained in the feature.
+ * @param <G> the type of positions represented by the geometry.
  */
-public class Feature<T extends IFeature.Geometry<?>> implements IFeature
+public class Feature<G>
 {
     @JsonProperty("properties")
     protected final HashMap<String, Object> properties;
+    @JsonProperty("geometry")
+    protected final Geometry<G> geometry;
     @JsonProperty("type")
     private final String type = "Feature";
-    @JsonProperty("geometry")
-    private final T geometry;
 
     /**
      * Constructs a GeoJSON feature.
      *
-     * @param geometry   the feature's geometry:
-     *                   <ul>
-     *                   <li>{@link LineString}</li>
-     *                   <li>{@link Point}</li>
-     *                   </ul>
-     * @param properties the feature's properties.
+     * @param geometry the feature's geometry
      */
-    public Feature(T geometry, HashMap<String, Object> properties)
-    {
-        this.geometry = geometry;
-        this.properties = properties;
-    }
-
-    /**
-     * Constructs a GeoJSON feature.
-     *
-     * @param geometry the feature's geometry:
-     *                 <ul>
-     *                 <li>{@link IFeature.LineString}</li>
-     *                 <li>{@link IFeature.Point}</li>
-     *                 </ul>
-     */
-    public Feature(T geometry)
+    public Feature(Geometry<G> geometry)
     {
         this.geometry = geometry;
         this.properties = new HashMap<>();
+    }
+
+    /**
+     * Represents a generic GeoJSON geometry.
+     *
+     * @param <T> the type of the geometry's coordinates.
+     */
+    public static class Geometry<T>
+    {
+        @JsonProperty("coordinates")
+        protected final T coordinates;
+        @JsonProperty("type")
+        private final String type;
+
+        public Geometry(String type, T coordinates)
+        {
+            this.type = type;
+            this.coordinates = coordinates;
+        }
     }
 }

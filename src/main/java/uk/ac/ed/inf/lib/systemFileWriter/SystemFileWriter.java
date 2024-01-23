@@ -2,14 +2,11 @@ package uk.ac.ed.inf.lib.systemFileWriter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import uk.ac.ed.inf.factories.FeatureFactory;
 import uk.ac.ed.inf.ilp.data.LngLat;
 import uk.ac.ed.inf.ilp.data.Order;
 import uk.ac.ed.inf.lib.pathFinder.INode.Direction;
 import uk.ac.ed.inf.lib.pathFinder.IPathFinder;
 import uk.ac.ed.inf.lib.systemFileWriter.geoJSON.GeoJSON;
-import uk.ac.ed.inf.lib.systemFileWriter.geoJSON.IFeature;
-import uk.ac.ed.inf.lib.systemFileWriter.geoJSON.IFeatureFactory;
 
 import java.io.FileWriter;
 import java.util.ArrayList;
@@ -47,32 +44,31 @@ public class SystemFileWriter implements ISystemFileWriter
 
     public void writeOrders(Order[] orders) throws RuntimeException
     {
-        if (orders == null || orders.length == 0)
-            throw new IllegalArgumentException("nothing to write; orders is null or empty");
+        if (orders == null)
+            throw new IllegalArgumentException("nothing to write; orders is null");
 
         final SerialisableOrder[] writableOrders = Arrays.stream(orders).
                 map(SerialisableOrder::new).
                 toArray(SerialisableOrder[]::new);
 
-        write(LOCATION + "deliveries-" + date + ".json", writableOrders);
+        write(LOCATION + "/deliveries-" + date + ".json", writableOrders);
     }
 
     public void writeGeoJSON(LngLat[] path) throws RuntimeException
     {
-        if (path == null || path.length == 0)
-            throw new IllegalArgumentException("nothing to write; path is null or empty");
+        if (path == null)
+            throw new IllegalArgumentException("nothing to write; path is null");
 
-        final IFeatureFactory featureFactory = new FeatureFactory();
-        final IFeature[] features = new IFeature[1];
-        features[0] = featureFactory.createLineString(path);
+        final GeoJSON geoJSON = new GeoJSON(null);
+        if (path.length > 0) geoJSON.addLineString(path);
 
-        write(LOCATION + "drone-" + date + ".geojson", new GeoJSON(features));
+        write(LOCATION + "/drone-" + date + ".geojson", geoJSON);
     }
 
     public void writeFlightPath(IPathFinder.Result[] results) throws RuntimeException
     {
-        if (results == null || results.length == 0)
-            throw new IllegalArgumentException("nothing to write; results is null or empty");
+        if (results == null)
+            throw new IllegalArgumentException("nothing to write; results is null");
 
         final List<SerialisableDroneMove> moves = Arrays.stream(results)
                 .flatMap(result ->
@@ -83,7 +79,7 @@ public class SystemFileWriter implements ISystemFileWriter
                 })
                 .collect(Collectors.toCollection(ArrayList::new));
 
-        write(LOCATION + "flightpath-" + date + ".json", moves);
+        write(LOCATION + "/flightpath-" + date + ".json", moves);
     }
 
     /**
@@ -106,6 +102,6 @@ public class SystemFileWriter implements ISystemFileWriter
             throw new RuntimeException(String.format("failed to write data to '%s': %s", dest, e.getMessage()), e);
         }
 
-        logger.info(String.format("[system] successfully wrote to '%s'", dest));
+        logger.info(String.format("[system] finished writing to '%s'", dest));
     }
 }
