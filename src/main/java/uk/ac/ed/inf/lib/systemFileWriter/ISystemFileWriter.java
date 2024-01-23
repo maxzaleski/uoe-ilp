@@ -48,13 +48,13 @@ public interface ISystemFileWriter
     class SerialisableOrder
     {
         @JsonProperty("orderNo")
-        final private String orderNo;
+        private String orderNo;
         @JsonProperty("orderStatus")
-        final private OrderStatus orderStatus;
+        private OrderStatus orderStatus;
         @JsonProperty("orderValidationCode")
-        final private OrderValidationCode orderValidationCode;
+        private OrderValidationCode orderValidationCode;
         @JsonProperty("costInPence")
-        final private int costInPence;
+        private int costInPence;
 
         public SerialisableOrder(Order order)
         {
@@ -62,6 +62,50 @@ public interface ISystemFileWriter
             this.orderStatus = order.getOrderStatus();
             this.orderValidationCode = order.getOrderValidationCode();
             this.costInPence = order.getPriceTotalInPence();
+        }
+
+        public SerialisableOrder()
+        {
+        }
+
+        public String getOrderNo()
+        {
+            return orderNo;
+        }
+
+        public OrderStatus getOrderStatus()
+        {
+            return orderStatus;
+        }
+
+        public OrderValidationCode getOrderValidationCode()
+        {
+            return orderValidationCode;
+        }
+
+        public int getCostInPence()
+        {
+            return costInPence;
+        }
+
+        public void setOrderNo(String orderNo)
+        {
+            this.orderNo = orderNo;
+        }
+
+        public void setOrderStatus(OrderStatus orderStatus)
+        {
+            this.orderStatus = orderStatus;
+        }
+
+        public void setOrderValidationCode(OrderValidationCode orderValidationCode)
+        {
+            this.orderValidationCode = orderValidationCode;
+        }
+
+        public void setCostInPence(int costInPence)
+        {
+            this.costInPence = costInPence;
         }
     }
 

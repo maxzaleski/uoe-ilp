@@ -12,9 +12,9 @@ import java.util.List;
 public class GeoJSON
 {
     @JsonProperty("type")
-    private final String type = "FeatureCollection";
+    private String type = "FeatureCollection";
     @JsonProperty("features")
-    private final List<Feature<?>> features;
+    private List<Feature<?>> features;
 
     /**
      * Constructs a GeoJSON object.
@@ -27,6 +27,11 @@ public class GeoJSON
         this.features = features;
     }
 
+    public GeoJSON()
+    {
+        this(null);
+    }
+
     /**
      * Adds a line string feature to the GeoJSON object.
      *
@@ -35,5 +40,25 @@ public class GeoJSON
     public void addLineString(LngLat[] positions)
     {
         this.features.add(new LineString(positions));
+    }
+
+    public String getType()
+    {
+        return type;
+    }
+
+    public List<Feature<?>> getFeatures()
+    {
+        return features;
+    }
+
+    public void setType(String type)
+    {
+        this.type = type;
+    }
+
+    public void setFeatures(List<Feature<?>> features)
+    {
+        this.features = features;
     }
 }

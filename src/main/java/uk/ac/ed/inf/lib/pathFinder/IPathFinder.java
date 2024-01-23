@@ -1,6 +1,7 @@
 package uk.ac.ed.inf.lib.pathFinder;
 
 import uk.ac.ed.inf.ilp.data.LngLat;
+import uk.ac.ed.inf.ilp.data.NamedRegion;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -20,6 +21,8 @@ public interface IPathFinder
      * @throws RuntimeException if an unexpected error occurs during execution.
      */
     Result findRoute(LngLat from, LngLat to) throws RuntimeException;
+
+    void setNoFlyZones(NamedRegion[] noFlyZones);
 
     /**
      * Represents the result of a path finding operation.
