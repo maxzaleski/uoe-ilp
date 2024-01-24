@@ -17,9 +17,6 @@ import java.util.logging.Logger;
 
 import static java.time.DayOfWeek.*;
 
-/**
- * Unit test for simple App.
- */
 public class AppTest extends TestCase
 {
     final String PROD_URL = System.getenv("PROD_URL");
